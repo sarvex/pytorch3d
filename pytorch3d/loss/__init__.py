@@ -12,4 +12,4 @@ from .mesh_normal_consistency import mesh_normal_consistency
 from .point_mesh_distance import point_mesh_edge_distance, point_mesh_face_distance
 
 
-__all__ = [k for k in globals().keys() if not k.startswith("_")]
+__all__ = [k for k in globals() if not k.startswith("_")]

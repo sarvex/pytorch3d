@@ -60,7 +60,7 @@ def setup_cuda():
     if CU_VERSION == "cu102":
         nvcc_flags = basic_nvcc_flags
     elif CU_VERSION == "cu110":
-        nvcc_flags = "-gencode=arch=compute_80,code=sm_80 " + basic_nvcc_flags
+        nvcc_flags = f"-gencode=arch=compute_80,code=sm_80 {basic_nvcc_flags}"
     else:
         nvcc_flags = (
             "-gencode=arch=compute_80,code=sm_80 "
@@ -112,10 +112,20 @@ def do_build(start_args: List[str]):
     if test_flag is not None:
         args.append(test_flag)
 
-    args.extend(["-c", "bottler", "-c", "fvcore", "-c", "iopath", "-c", "conda-forge"])
-    args.append("--no-anaconda-upload")
-    args.extend(["--python", os.environ["PYTHON_VERSION"]])
-    args.append("packaging/pytorch3d")
+    args.extend(
+        [
+            "-c",
+            "bottler",
+            "-c",
+            "fvcore",
+            "-c",
+            "iopath",
+            "-c",
+            "conda-forge",
+            "--no-anaconda-upload",
+        ]
+    )
+    args.extend(["--python", os.environ["PYTHON_VERSION"], "packaging/pytorch3d"])
     print(args)
     subprocess.check_call(args)
 
@@ -124,7 +134,7 @@ if __name__ == "__main__":
     args = ["conda", "build"]
     setup_cuda()
 
-    init_path = source_root_dir + "/pytorch3d/__init__.py"
+    init_path = f"{source_root_dir}/pytorch3d/__init__.py"
     build_version = runpy.run_path(init_path)["__version__"]
     os.environ["BUILD_VERSION"] = build_version
 

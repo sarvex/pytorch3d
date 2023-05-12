@@ -43,9 +43,7 @@ def mask_background(
         raise ValueError(_invalid_color_error_msg(bg_color))
     # cast to the image_rgb's type
     mask_fg = mask_fg.type_as(image_rgb)
-    # mask the bg
-    image_masked = mask_fg * image_rgb + (1 - mask_fg) * bg_color_t
-    return image_masked
+    return mask_fg * image_rgb + (1 - mask_fg) * bg_color_t
 
 
 def _invalid_color_error_msg(bg_color) -> str:

@@ -197,10 +197,7 @@ class AbstractMaskRaySampler(RaySamplerBase, torch.nn.Module):
         )
 
         if isinstance(ray_bundle, tuple):
-            return ImplicitronRayBundle(
-                # pyre-ignore[16]
-                **{k: v for k, v in ray_bundle._asdict().items()}
-            )
+            return ImplicitronRayBundle(**dict(ray_bundle._asdict().items()))
         return ImplicitronRayBundle(
             directions=ray_bundle.directions,
             origins=ray_bundle.origins,

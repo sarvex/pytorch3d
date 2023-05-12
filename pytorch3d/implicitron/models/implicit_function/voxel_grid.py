@@ -492,7 +492,7 @@ class CPFactorizedVoxelGrid(VoxelGridBase):
         def factor(axis):
             i = {"x": 0, "y": 1, "z": 2}[axis]
             index = points[..., i, None]
-            vector = getattr(grid_values, "vector_components_" + axis)
+            vector = getattr(grid_values, f"vector_components_{axis}")
             return interpolate_line(
                 index,
                 vector,
@@ -998,7 +998,7 @@ class VoxelGridModule(Configurable, torch.nn.Module):
         new_params = {}
         # pyre-ignore[29]
         for name in self.params:
-            key = prefix + "params." + name
+            key = f"{prefix}params.{name}"
             if key in state_dict:
                 new_params[name] = torch.zeros_like(state_dict[key])
         # pyre-ignore[29]

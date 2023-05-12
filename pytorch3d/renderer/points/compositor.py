@@ -99,8 +99,7 @@ def _add_background_color_to_images(pix_idxs, images, background_color):
 
     if images.shape[1] != background_color.shape[0]:
         raise ValueError(
-            "Background color has %s channels not %s"
-            % (background_color.shape[0], images.shape[1])
+            f"Background color has {background_color.shape[0]} channels not {images.shape[1]}"
         )
 
     num_background_pixels = background_mask.sum()

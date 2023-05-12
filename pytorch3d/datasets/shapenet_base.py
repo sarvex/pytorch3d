@@ -77,10 +77,7 @@ class ShapeNetBase(torch.utils.data.Dataset):  # pragma: no cover
             - synset_id (str): synset id
             - model_id (str): model id
         """
-        model = {}
-        model["synset_id"] = self.synset_ids[idx]
-        model["model_id"] = self.model_ids[idx]
-        return model
+        return {"synset_id": self.synset_ids[idx], "model_id": self.model_ids[idx]}
 
     def _load_mesh(self, model_path) -> Tuple:
         verts, faces, aux = load_obj(
@@ -200,16 +197,12 @@ class ShapeNetBase(torch.utils.data.Dataset):  # pragma: no cover
             idxs = []
             for model_id in model_ids:
                 if model_id not in self.model_ids:
-                    raise ValueError(
-                        "model_id %s not found in the loaded dataset." % model_id
-                    )
+                    raise ValueError(f"model_id {model_id} not found in the loaded dataset.")
                 idxs.append(self.model_ids.index(model_id))
 
-        # Sample random models if categories and sample_nums are supplied and get
-        # the corresponding indices.
         elif categories is not None and len(categories) > 0:
             sample_nums = [1] if sample_nums is None else sample_nums
-            if len(categories) != len(sample_nums) and len(sample_nums) != 1:
+            if len(categories) != len(sample_nums) != 1:
                 raise ValueError(
                     "categories and sample_nums needs to be of the same length or "
                     "sample_nums needs to be of length 1."
@@ -219,9 +212,7 @@ class ShapeNetBase(torch.utils.data.Dataset):  # pragma: no cover
             for i in range(len(categories)):
                 category = self.synset_inv.get(categories[i], categories[i])
                 if category not in self.synset_inv.values():
-                    raise ValueError(
-                        "Category %s is not in the loaded dataset." % category
-                    )
+                    raise ValueError(f"Category {category} is not in the loaded dataset.")
                 # Broadcast if sample_nums has length of 1.
                 sample_num = sample_nums[i] if len(sample_nums) > 1 else sample_nums[0]
                 sampled_idxs = self._sample_idxs_from_category(
@@ -231,16 +222,12 @@ class ShapeNetBase(torch.utils.data.Dataset):  # pragma: no cover
                 #  typing.Tuple[Tensor, ...]]` but got `Tuple[Tensor, List[int]]`.
                 idxs_tensor = torch.cat((idxs_tensor, sampled_idxs))
             idxs = idxs_tensor.tolist()
-        # Check if the indices are valid if idxs are supplied.
         elif idxs is not None and len(idxs) > 0:
             if any(idx < 0 or idx >= len(self.model_ids) for idx in idxs):
                 raise IndexError(
                     "One or more idx values are out of bounds. Indices need to be"
                     "between 0 and %s." % (len(self.model_ids) - 1)
                 )
-        # Check if sample_nums is specified, if so sample sample_nums[0] number
-        # of indices from the entire loaded dataset. Otherwise randomly select one
-        # index from the dataset.
         else:
             sample_nums = [1] if sample_nums is None else sample_nums
             if len(sample_nums) > 1:
@@ -280,9 +267,12 @@ class ShapeNetBase(torch.utils.data.Dataset):  # pragma: no cover
             msg = (
                 "Sample size %d is larger than the number of objects in %s, "
                 "values sampled with replacement."
-            ) % (
-                sample_num,
-                "category " + category if category is not None else "all categories",
+                % (
+                    sample_num,
+                    f"category {category}"
+                    if category is not None
+                    else "all categories",
+                )
             )
             warnings.warn(msg)
         # pyre-fixme[7]: Expected `List[int]` but got `Tensor`.

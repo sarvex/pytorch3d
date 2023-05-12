@@ -314,18 +314,17 @@ class NeRFRaysampler(torch.nn.Module):
             ray_bundle = self._mc_raysampler(cameras)
             ray_bundle = self._normalize_raybundle(ray_bundle)
         else:
-            if camera_hash is not None:
-                # The case where we retrieve a camera from cache.
-                if batch_size != 1:
-                    raise NotImplementedError(
-                        "Ray caching works only for batches with a single camera!"
-                    )
-                full_ray_bundle = self._ray_cache[camera_hash]
-            else:
+            if camera_hash is None:
                 # We generate a full ray grid from scratch.
                 full_ray_bundle = self._grid_raysampler(cameras)
                 full_ray_bundle = self._normalize_raybundle(full_ray_bundle)
 
+            elif batch_size != 1:
+                raise NotImplementedError(
+                    "Ray caching works only for batches with a single camera!"
+                )
+            else:
+                full_ray_bundle = self._ray_cache[camera_hash]
             n_pixels = full_ray_bundle.directions.shape[:-1].numel()
 
             if self.training:

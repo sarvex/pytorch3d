@@ -40,9 +40,7 @@ def pose_spherical(theta, phi, radius):
 
 
 def _local_path(path_manager, path):
-    if path_manager is None:
-        return path
-    return path_manager.get_local_path(path)
+    return path if path_manager is None else path_manager.get_local_path(path)
 
 
 def load_blender_data(
@@ -67,11 +65,7 @@ def load_blender_data(
         meta = metas[s]
         imgs = []
         poses = []
-        if s == "train" or testskip == 0:
-            skip = 1
-        else:
-            skip = testskip
-
+        skip = 1 if s == "train" or testskip == 0 else testskip
         for frame in meta["frames"][::skip]:
             fname = os.path.join(basedir, frame["file_path"] + ".png")
             imgs.append(np.array(Image.open(_local_path(path_manager, fname))))

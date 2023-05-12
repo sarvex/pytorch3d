@@ -282,11 +282,11 @@ class TestBlending(TestCaseMixin, unittest.TestCase):
         pix_to_face = torch.full(
             (N, S, S, K), fill_value=-1, dtype=torch.int64, device=device
         )
-        h = int(S / 2)
+        h = S // 2
         pix_to_face_full = torch.randint(
             size=(N, h, h, K), low=0, high=100, device=device
         )
-        s = int(S / 4)
+        s = S // 4
         e = int(0.75 * S)
         pix_to_face[:, s:e, s:e, :] = pix_to_face_full
         empty = torch.tensor([], device=device)

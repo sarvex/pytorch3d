@@ -254,10 +254,7 @@ def _sample_network(
         surface_points_dot.abs().clip(eps) * dot_sign
     )
 
-    # t(theta) -> x(theta,c,v)
-    surface_points_theta_c_v = surface_cam_loc + surface_dists_theta * surface_ray_dirs
-
-    return surface_points_theta_c_v
+    return surface_cam_loc + surface_dists_theta * surface_ray_dirs
 
 
 @torch.enable_grad()

@@ -56,5 +56,4 @@ def taubin_smoothing(
     verts_list = struct_utils.packed_to_list(
         verts, meshes.num_verts_per_mesh().tolist()
     )
-    mesh = Meshes(verts=list(verts_list), faces=meshes.faces_list())
-    return mesh
+    return Meshes(verts=list(verts_list), faces=meshes.faces_list())

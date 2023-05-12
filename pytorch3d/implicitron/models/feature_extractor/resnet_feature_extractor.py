@@ -89,10 +89,7 @@ class ResNetFeatureExtractor(FeatureExtractorBase):
 
         self._feat_dim = {}
 
-        if len(self.stages) == 0:
-            # do not extract any resnet features
-            pass
-        else:
+        if len(self.stages) != 0:
             net = getattr(torchvision.models, self.name)(pretrained=self.pretrained)
             if self.first_max_pool:
                 self.stem = torch.nn.Sequential(

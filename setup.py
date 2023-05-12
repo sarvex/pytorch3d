@@ -77,8 +77,8 @@ def get_extensions():
             nvcc_args.append("-std=c++14")
         if cub_home is None:
             prefix = os.environ.get("CONDA_PREFIX", None)
-            if prefix is not None and os.path.isdir(prefix + "/include/cub"):
-                cub_home = prefix + "/include"
+            if prefix is not None and os.path.isdir(f"{prefix}/include/cub"):
+                cub_home = f"{prefix}/include"
 
         if cub_home is None:
             warnings.warn(
@@ -103,7 +103,7 @@ def get_extensions():
             if CC is not None:
                 existing_CC = get_existing_ccbin(nvcc_args)
                 if existing_CC is None:
-                    CC_arg = "-ccbin={}".format(CC)
+                    CC_arg = f"-ccbin={CC}"
                     nvcc_args.append(CC_arg)
                 elif existing_CC != CC:
                     msg = f"Inconsistent ccbins: {CC} and {existing_CC}"
@@ -113,7 +113,7 @@ def get_extensions():
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
 
-    ext_modules = [
+    return [
         extension(
             "pytorch3d._C",
             sources,
@@ -122,8 +122,6 @@ def get_extensions():
             extra_compile_args=extra_compile_args,
         )
     ]
-
-    return ext_modules
 
 
 # Retrieve __version__ from the package.

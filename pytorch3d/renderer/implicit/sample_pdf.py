@@ -44,7 +44,7 @@ def sample_pdf(
     n_bins = weights.shape[-1]
     if n_bins + 1 != bins.shape[-1] or weights.shape[:-1] != batch_shape:
         shapes = f"{bins.shape}{weights.shape}"
-        raise ValueError("Inconsistent shapes of bins and weights: " + shapes)
+        raise ValueError(f"Inconsistent shapes of bins and weights: {shapes}")
     output_shape = batch_shape + (n_samples,)
 
     if det:
@@ -138,9 +138,4 @@ def sample_pdf_python(
     denom = cdf_g[..., 1] - cdf_g[..., 0]
     denom = torch.where(denom < eps, torch.ones_like(denom), denom)
     t = (u - cdf_g[..., 0]) / denom
-    # t is of shape  (..., N_samples) and identifies how far through
-    # each sample is in its bin.
-
-    samples = bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])
-
-    return samples
+    return bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])

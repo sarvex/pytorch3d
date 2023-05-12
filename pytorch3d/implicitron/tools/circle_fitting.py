@@ -117,11 +117,11 @@ def fit_circle_in_2d(
     center = solution[:2, 0] / 2
     radius = torch.sqrt(solution[2, 0] + (center**2).sum())
     if n_points > 0:
-        if angles is not None:
-            warnings.warn("n_points ignored because angles provided")
-        else:
+        if angles is None:
             angles = torch.linspace(0, 2 * pi, n_points, device=points2d.device)
 
+        else:
+            warnings.warn("n_points ignored because angles provided")
     if angles is not None:
         initial_direction_xy = (points2d[0] - center).unbind()
         initial_angle = torch.atan2(initial_direction_xy[1], initial_direction_xy[0])

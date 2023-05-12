@@ -39,7 +39,7 @@ def conda_docker_image_for_cuda(cuda_version):
         return None
     if len(cuda_version) != 5:
         raise ValueError("Unknown cuda version")
-    return "pytorch/conda-builder:cuda" + cuda_version[2:]
+    return f"pytorch/conda-builder:cuda{cuda_version[2:]}"
 
 
 def pytorch_versions_for_python(python_version):
@@ -83,12 +83,11 @@ def workflow_pair(
     filter_branch,
 ):
 
-    w = []
     py = python_version.replace(".", "")
     pyt = pytorch_version.replace(".", "")
     base_workflow_name = f"{prefix}linux_{btype}_py{py}_{cu_version}_pyt{pyt}"
 
-    w.append(
+    w = [
         generate_base_workflow(
             base_workflow_name=base_workflow_name,
             python_version=python_version,
@@ -97,8 +96,7 @@ def workflow_pair(
             btype=btype,
             filter_branch=filter_branch,
         )
-    )
-
+    ]
     if upload:
         w.append(
             generate_upload_workflow(
@@ -148,7 +146,7 @@ def generate_upload_workflow(*, base_workflow_name, btype, cu_version, filter_br
     }
 
     if btype == "wheel":
-        d["subfolder"] = cu_version + "/"
+        d["subfolder"] = f"{cu_version}/"
 
     if filter_branch is not None:
         d["filters"] = {"branches": {"only": filter_branch}}

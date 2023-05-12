@@ -196,7 +196,7 @@ class JsonIndexDatasetMapProviderV2(DatasetMapProviderBase):  # pyre-ignore [13]
         if "," in self.category:
             # a comma-separated list of categories to load
             categories = [c.strip() for c in self.category.split(",")]
-            logger.info(f"Loading a list of categories: {str(categories)}.")
+            logger.info(f"Loading a list of categories: {categories}.")
             with multiprocessing.Pool(
                 processes=min(self.num_load_workers, len(categories))
             ) as pool:
@@ -374,10 +374,7 @@ class JsonIndexDatasetMapProviderV2(DatasetMapProviderBase):  # pyre-ignore [13]
 
         """
         category_to_subset_name_list_json = "category_to_subset_name_list.json"
-        category_to_subset_name_list = self._load_annotation_json(
-            category_to_subset_name_list_json
-        )
-        return category_to_subset_name_list
+        return self._load_annotation_json(category_to_subset_name_list_json)
 
     def get_all_train_cameras(self) -> Optional[CamerasBase]:
         # pyre-ignore[16]

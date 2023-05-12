@@ -35,9 +35,9 @@ def torus(
     Returns:
         Meshes object with the generated vertices and faces.
     """
-    if not (sides > 0):
+    if sides <= 0:
         raise ValueError("sides must be > 0.")
-    if not (rings > 0):
+    if rings <= 0:
         raise ValueError("rings must be > 0.")
     device = device if device else torch.device("cpu")
 
@@ -63,9 +63,7 @@ def torus(
             index01 = index0 + (j1 % sides)
             index10 = index1 + (j0 % sides)
             index11 = index1 + (j1 % sides)
-            faces.append([index00, index10, index11])
-            faces.append([index11, index01, index00])
-
+            faces.extend(([index00, index10, index11], [index11, index01, index00]))
     verts_list = [torch.tensor(verts, dtype=torch.float32, device=device)]
     faces_list = [torch.tensor(faces, dtype=torch.int64, device=device)]
     return Meshes(verts_list, faces_list)

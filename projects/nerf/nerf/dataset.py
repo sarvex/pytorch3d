@@ -77,9 +77,9 @@ def get_nerf_datasets(
     if dataset_name not in ALL_DATASETS:
         raise ValueError(f"'{dataset_name}'' does not refer to a known dataset.")
 
-    print(f"Loading dataset {dataset_name}, image size={str(image_size)} ...")
+    print(f"Loading dataset {dataset_name}, image size={image_size} ...")
 
-    cameras_path = os.path.join(data_root, dataset_name + ".pth")
+    cameras_path = os.path.join(data_root, f"{dataset_name}.pth")
     image_path = cameras_path.replace(".pth", ".png")
 
     if autodownload and any(not os.path.isfile(p) for p in (cameras_path, image_path)):
@@ -151,7 +151,7 @@ def download_data(
     os.makedirs(data_root, exist_ok=True)
 
     for dataset_name in dataset_names:
-        cameras_file = dataset_name + ".pth"
+        cameras_file = f"{dataset_name}.pth"
         images_file = cameras_file.replace(".pth", ".png")
         license_file = cameras_file.replace(".pth", "_license.txt")
 

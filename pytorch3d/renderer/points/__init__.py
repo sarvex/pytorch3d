@@ -11,4 +11,4 @@ from .rasterizer import PointsRasterizationSettings, PointsRasterizer
 from .renderer import PointsRenderer
 
 
-__all__ = [k for k in globals().keys() if not k.startswith("_")]
+__all__ = [k for k in globals() if not k.startswith("_")]

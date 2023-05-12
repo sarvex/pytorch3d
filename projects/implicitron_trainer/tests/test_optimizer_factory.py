@@ -171,9 +171,9 @@ class Node(torch.nn.Module):
     def __init__(self, children=(), params=(), param_groups=None):
         super().__init__()
         for i, child in enumerate(children):
-            self.add_module("m" + str(i), child)
+            self.add_module(f"m{str(i)}", child)
         for i, param in enumerate(params):
-            setattr(self, "p" + str(i), param)
+            setattr(self, f"p{str(i)}", param)
         if param_groups is not None:
             self.param_groups = param_groups
 

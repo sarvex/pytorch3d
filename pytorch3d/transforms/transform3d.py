@@ -559,8 +559,7 @@ class Translate(Transform3d):
         """
         inv_mask = self._matrix.new_ones([1, 4, 4])
         inv_mask[0, 3, :3] = -1.0
-        i_matrix = self._matrix * inv_mask
-        return i_matrix
+        return self._matrix * inv_mask
 
 
 class Scale(Transform3d):
@@ -607,9 +606,7 @@ class Scale(Transform3d):
         xyz = torch.stack([self._matrix[:, i, i] for i in range(4)], dim=1)
         # pyre-fixme[58]: `/` is not supported for operand types `float` and `Tensor`.
         ixyz = 1.0 / xyz
-        # pyre-fixme[6]: For 1st param expected `Tensor` but got `float`.
-        imat = torch.diag_embed(ixyz, dim1=1, dim2=2)
-        return imat
+        return torch.diag_embed(ixyz, dim1=1, dim2=2)
 
 
 class Rotate(Transform3d):
@@ -682,8 +679,7 @@ class RotateAxisAngle(Rotate):
         """
         axis = axis.upper()
         if axis not in ["X", "Y", "Z"]:
-            msg = "Expected axis to be one of ['X', 'Y', 'Z']; got %s"
-            raise ValueError(msg % axis)
+            raise ValueError(f"Expected axis to be one of ['X', 'Y', 'Z']; got {axis}")
         angle = _handle_angle_input(angle, dtype, device, "RotateAxisAngle")
         angle = (angle / 180.0 * math.pi) if degrees else angle
         # We assume the points on which this transformation will be applied
@@ -756,7 +752,7 @@ def _handle_input(
             msg = "Expected tensor of shape (N, 3); got %r (in %s)"
             raise ValueError(msg % (x.shape, name))
         if y is not None or z is not None:
-            msg = "Expected y and z to be None (in %s)" % name
+            msg = f"Expected y and z to be None (in {name})"
             raise ValueError(msg)
         return x.to(device=device_, dtype=dtype)
 
@@ -771,7 +767,7 @@ def _handle_input(
     sizes = [c.shape[0] for c in xyz]
     N = max(sizes)
     for c in xyz:
-        if c.shape[0] != 1 and c.shape[0] != N:
+        if c.shape[0] not in [1, N]:
             msg = "Got non-broadcastable sizes %r (in %s)" % (sizes, name)
             raise ValueError(msg)
     xyz = [c.expand(N) for c in xyz]
@@ -792,11 +788,10 @@ def _handle_angle_input(
         - Torch scalar
     """
     device_ = get_device(x, device)
-    if torch.is_tensor(x) and x.dim() > 1:
-        msg = "Expected tensor of shape (N,); got %r (in %s)"
-        raise ValueError(msg % (x.shape, name))
-    else:
+    if not torch.is_tensor(x) or x.dim() <= 1:
         return _handle_coord(x, dtype, device_)
+    msg = "Expected tensor of shape (N,); got %r (in %s)"
+    raise ValueError(msg % (x.shape, name))
 
 
 def _broadcast_bmm(a, b) -> torch.Tensor:
@@ -817,7 +812,7 @@ def _broadcast_bmm(a, b) -> torch.Tensor:
     if a.dim() == 2:
         a = a[None]
     if len(a) != len(b):
-        if not ((len(a) == 1) or (len(b) == 1)):
+        if len(a) != 1 and len(b) != 1:
             msg = "Expected batch dim for bmm to be equal or 1; got %r, %r"
             raise ValueError(msg % (a.shape, b.shape))
         if len(a) == 1:

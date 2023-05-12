@@ -87,7 +87,6 @@ class _Render(torch.autograd.Function):
     """
 
     @staticmethod
-    # pyre-fixme[14]: `forward` overrides method defined in `Function` inconsistently.
     def forward(
         ctx,
         vert_pos,
@@ -162,10 +161,7 @@ class _Render(torch.autograd.Function):
             image,
             info,
         )
-        if return_forward_info:
-            return image, info
-        else:
-            return image
+        return (image, info) if return_forward_info else image
 
     @staticmethod
     def backward(ctx, grad_im, *args):
@@ -653,12 +649,8 @@ class Renderer(torch.nn.Module):
             mode,
             (mode == 0) and return_forward_info,
         )
-        if return_forward_info and mode != 0:
-            return ret_res, None
-        return ret_res
+        return (ret_res, None) if return_forward_info and mode != 0 else ret_res
 
     def extra_repr(self) -> str:
         """Extra information to print in pytorch graphs."""
-        return "width={}, height={}, max_num_balls={}".format(
-            self._renderer.width, self._renderer.height, self._renderer.max_num_balls
-        )
+        return f"width={self._renderer.width}, height={self._renderer.height}, max_num_balls={self._renderer.max_num_balls}"

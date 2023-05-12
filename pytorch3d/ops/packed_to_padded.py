@@ -33,13 +33,13 @@ class _PackedToPadded(Function):
                 `inputs[first_idxs[i]]` will be copied to `inputs_padded[i, :]`,
                 with zeros padding out the extra inputs.
         """
-        if not (inputs.dim() == 2):
+        if inputs.dim() != 2:
             raise ValueError("input can only be 2-dimensional.")
-        if not (first_idxs.dim() == 1):
+        if first_idxs.dim() != 1:
             raise ValueError("first_idxs can only be 1-dimensional.")
-        if not (inputs.dtype == torch.float32):
+        if inputs.dtype != torch.float32:
             raise ValueError("input has to be of type torch.float32.")
-        if not (first_idxs.dtype == torch.int64):
+        if first_idxs.dtype != torch.int64:
             raise ValueError("first_idxs has to be of type torch.int64.")
         if not isinstance(max_size, int):
             raise ValueError("max_size has to be int.")
@@ -47,8 +47,7 @@ class _PackedToPadded(Function):
         ctx.save_for_backward(first_idxs)
         ctx.num_inputs = int(inputs.shape[0])
         inputs, first_idxs = inputs.contiguous(), first_idxs.contiguous()
-        inputs_padded = _C.packed_to_padded(inputs, first_idxs, max_size)
-        return inputs_padded
+        return _C.packed_to_padded(inputs, first_idxs, max_size)
 
     @staticmethod
     @once_differentiable
@@ -122,13 +121,13 @@ class _PaddedToPacked(Function):
             inputs_packed: FloatTensor of shape (F, D) where
                 `inputs_packed[first_idx[i]:] = inputs[i, :]`.
         """
-        if not (inputs.dim() == 3):
+        if inputs.dim() != 3:
             raise ValueError("input can only be 3-dimensional.")
-        if not (first_idxs.dim() == 1):
+        if first_idxs.dim() != 1:
             raise ValueError("first_idxs can only be 1-dimensional.")
-        if not (inputs.dtype == torch.float32):
+        if inputs.dtype != torch.float32:
             raise ValueError("input has to be of type torch.float32.")
-        if not (first_idxs.dtype == torch.int64):
+        if first_idxs.dtype != torch.int64:
             raise ValueError("first_idxs has to be of type torch.int64.")
         if not isinstance(num_inputs, int):
             raise ValueError("max_size has to be int.")
@@ -136,8 +135,7 @@ class _PaddedToPacked(Function):
         ctx.save_for_backward(first_idxs)
         ctx.max_size = inputs.shape[1]
         inputs, first_idxs = inputs.contiguous(), first_idxs.contiguous()
-        inputs_packed = _C.padded_to_packed(inputs, first_idxs, num_inputs)
-        return inputs_packed
+        return _C.padded_to_packed(inputs, first_idxs, num_inputs)
 
     @staticmethod
     @once_differentiable

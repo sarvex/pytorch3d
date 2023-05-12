@@ -176,8 +176,7 @@ def render_point_cloud_pytorch3d(
 
 def _signed_clamp(x, eps):
     sign = x.sign() + (x == 0.0).type_as(x)
-    x_clamp = sign * torch.clamp(x.abs(), eps)
-    return x_clamp
+    return sign * torch.clamp(x.abs(), eps)
 
 
 def _transform_points(cameras, point_clouds, eps, **kwargs):

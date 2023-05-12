@@ -159,9 +159,7 @@ class Stats:
         self.reset()  # zero the stats
 
     def _gather_value(self, val):
-        if isinstance(val, float):
-            pass
-        else:
+        if not isinstance(val, float):
             val = val.data.cpu().numpy()
             val = float(val.sum())
         return val
@@ -203,11 +201,7 @@ class Stats:
                 time_per_it = float(elapsed) / float(it + 1)
                 val = time_per_it
             else:
-                if stat in preds:
-                    val = self._gather_value(preds[stat])
-                else:
-                    val = None
-
+                val = self._gather_value(preds[stat]) if stat in preds else None
             if val is not None:
                 self.stats[stat_set][stat].update(val, epoch=epoch, n=1)
 
@@ -276,12 +270,11 @@ class Stats:
                 val = self.stats[stat_set][stat].get_epoch_averages()
                 if val is None:
                     continue
-                else:
-                    val = np.array(val).reshape(-1)
-                    stat_sets_now.append(stat_set)
+                val = np.array(val).reshape(-1)
+                stat_sets_now.append(stat_set)
                 vals.append(val)
 
-            if len(vals) == 0:
+            if not vals:
                 continue
 
             vals = np.stack(vals, axis=1)
@@ -291,7 +284,7 @@ class Stats:
 
         if withvisdom:
             for tmodes, stat, x, vals in lines:
-                title = "%s" % stat
+                title = f"{stat}"
                 opts = {"title": title, "legend": list(tmodes)}
                 for i, (tmode, val) in enumerate(zip(tmodes, vals.T)):
                     update = "append" if i > 0 else None
@@ -312,7 +305,7 @@ class Stats:
             plot_file = self.plot_file
 
         if plot_file is not None:
-            print("Exporting stats to %s" % plot_file)
+            print(f"Exporting stats to {plot_file}")
             ncol = 3
             nrow = int(np.ceil(float(len(lines)) / ncol))
             matplotlib.rcParams.update({"font.size": 5})
@@ -330,7 +323,7 @@ class Stats:
                     plt.plot(x[valid], vals_[valid], c=c_, linewidth=1)
                 plt.ylabel(stat)
                 plt.xlabel("epoch")
-                plt.gca().yaxis.label.set_color(c[0:3] * 0.75)
+                plt.gca().yaxis.label.set_color(c[:3] * 0.75)
                 plt.legend(tmodes)
                 gcolor = np.array(mcolors.to_rgba("lightgray"))
                 plt.grid(

@@ -114,7 +114,7 @@ def weighted_sum_losses(
         for k, w in loss_weights.items()
         if (k in preds and w != 0.0)
     ]
-    if len(losses_weighted) == 0:
+    if not losses_weighted:
         warnings.warn("No main objective found.")
         return None
     loss = sum(losses_weighted)

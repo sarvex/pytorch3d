@@ -304,15 +304,13 @@ def _get_co3d_set_names_mapping(
         prefixes = [DATASET_TYPE_TEST]
         if not single_seq:
             prefixes.append(DATASET_TYPE_TRAIN)
-        set_names_mapping.update(
-            {
-                dset: [
-                    p + "_" + t
-                    for p in prefixes
-                    for t in [DATASET_TYPE_KNOWN, DATASET_TYPE_UNKNOWN]
-                ]
-                for dset in ["val", "test"]
-            }
-        )
+        set_names_mapping |= {
+            dset: [
+                f"{p}_{t}"
+                for p in prefixes
+                for t in [DATASET_TYPE_KNOWN, DATASET_TYPE_UNKNOWN]
+            ]
+            for dset in ["val", "test"]
+        }
 
     return set_names_mapping

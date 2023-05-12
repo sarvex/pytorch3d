@@ -25,11 +25,11 @@ from .renderer import Renderer as PulsarRenderer
 
 def _ensure_float_tensor(val_in, device):
     """Make sure that the value provided is wrapped a PyTorch float tensor."""
-    if not isinstance(val_in, torch.Tensor):
-        val_out = torch.tensor(val_in, dtype=torch.float32, device=device).reshape((1,))
-    else:
-        val_out = val_in.to(torch.float32).to(device).reshape((1,))
-    return val_out
+    return (
+        torch.tensor(val_in, dtype=torch.float32, device=device).reshape((1,))
+        if not isinstance(val_in, torch.Tensor)
+        else val_in.to(torch.float32).to(device).reshape((1,))
+    )
 
 
 class PulsarPointsRenderer(nn.Module):
@@ -92,11 +92,11 @@ class PulsarPointsRenderer(nn.Module):
         # Making sure about integer types.
         width = int(width)
         height = int(height)
-        max_num_spheres = int(max_num_spheres)
+        max_num_spheres = max_num_spheres
         orthogonal_projection = isinstance(
             rasterizer.cameras, (FoVOrthographicCameras, OrthographicCameras)
         )
-        n_channels = int(n_channels)
+        n_channels = n_channels
         self.renderer = PulsarRenderer(
             width=width,
             height=height,
@@ -118,10 +118,7 @@ class PulsarPointsRenderer(nn.Module):
             raise ValueError(
                 "gamma is a required keyword argument for the PulsarPointsRenderer!"
             )
-        if (
-            len(point_clouds) != len(self.rasterizer.cameras)
-            and len(self.rasterizer.cameras) != 1
-        ):
+        if len(point_clouds) != len(self.rasterizer.cameras) != 1:
             raise ValueError(
                 (
                     "The len(point_clouds) must either be equal to len(rasterizer.cameras) or "
@@ -207,7 +204,7 @@ class PulsarPointsRenderer(nn.Module):
                         f"{kwargs.get('scale_xyz', cameras.scale_xyz)[cloud_idx]}."
                     )
                 sensor_width = max_x - min_x
-                if not sensor_width > 0.0:
+                if sensor_width <= 0.0:
                     raise ValueError(
                         f"The orthographic camera must have positive size! Is: {sensor_width}."  # noqa: B950
                     )
@@ -232,12 +229,10 @@ class PulsarPointsRenderer(nn.Module):
                     )
                 if focal_length_conf.numel() == 2:
                     sensor_width = 2.0 / focal_length_conf[0]
-                else:
-                    if focal_length_conf.numel() != 1:
-                        raise ValueError(
-                            "Focal length not parsable: %s." % (str(focal_length_conf))
-                        )
+                elif focal_length_conf.numel() == 1:
                     sensor_width = 2.0 / focal_length_conf
+                else:
+                    raise ValueError(f"Focal length not parsable: {str(focal_length_conf)}.")
                 if "znear" not in kwargs.keys() or "zfar" not in kwargs.keys():
                     raise ValueError(
                         "pulsar needs znear and zfar values for "
@@ -256,80 +251,77 @@ class PulsarPointsRenderer(nn.Module):
                     * 0.5
                     * self.renderer._renderer.height
                 )
-        else:
-            if not isinstance(cameras, PerspectiveCameras):
-                # Create a virtual focal length that is closer than znear.
-                znear = kwargs.get("znear", cameras.znear)[cloud_idx]
-                zfar = kwargs.get("zfar", cameras.zfar)[cloud_idx]
-                focal_length = znear - 1e-6
-                # Create a sensor size that matches the expected fov assuming this f.
-                afov = kwargs.get("fov", cameras.fov)[cloud_idx]
-                if kwargs.get("degrees", cameras.degrees):
-                    afov *= math.pi / 180.0
-                sensor_width = math.tan(afov / 2.0) * 2.0 * focal_length
-                if not (
-                    kwargs.get("aspect_ratio", cameras.aspect_ratio)[cloud_idx]
-                    - self.renderer._renderer.width / self.renderer._renderer.height
-                    < 1e-6
-                ):
-                    raise ValueError(
-                        "The aspect ratio ("
-                        f"{kwargs.get('aspect_ratio', cameras.aspect_ratio)[cloud_idx]}) "
-                        "must agree with the resolution width / height ("
-                        f"{self.renderer._renderer.width / self.renderer._renderer.height})."  # noqa: B950
-                    )
-                principal_point_x, principal_point_y = (
-                    torch.zeros((1,), dtype=torch.float32),
-                    torch.zeros((1,), dtype=torch.float32),
+        elif isinstance(cameras, PerspectiveCameras):
+            focal_length_conf = kwargs.get("focal_length", cameras.focal_length)[
+                cloud_idx
+            ]
+            if (
+                focal_length_conf.numel() == 2
+                and focal_length_conf[0] * self.renderer._renderer.width
+                - focal_length_conf[1] * self.renderer._renderer.height
+                > 1e-5
+            ):
+                raise ValueError(
+                    "Pulsar only supports a single focal length! "
+                    "Provided: %s." % (str(focal_length_conf))
                 )
+            if "znear" not in kwargs.keys() or "zfar" not in kwargs.keys():
+                raise ValueError(
+                    "pulsar needs znear and zfar values for "
+                    "the PerspectiveCameras. Please provide them as keyword "
+                    "argument to the forward method."
+                )
+            znear = kwargs["znear"][cloud_idx]
+            zfar = kwargs["zfar"][cloud_idx]
+            if focal_length_conf.numel() == 2:
+                focal_length_px = focal_length_conf[0]
+            elif focal_length_conf.numel() == 1:
+                focal_length_px = focal_length_conf
             else:
-                focal_length_conf = kwargs.get("focal_length", cameras.focal_length)[
-                    cloud_idx
-                ]
-                if (
-                    focal_length_conf.numel() == 2
-                    and focal_length_conf[0] * self.renderer._renderer.width
-                    - focal_length_conf[1] * self.renderer._renderer.height
-                    > 1e-5
-                ):
-                    raise ValueError(
-                        "Pulsar only supports a single focal length! "
-                        "Provided: %s." % (str(focal_length_conf))
-                    )
-                if "znear" not in kwargs.keys() or "zfar" not in kwargs.keys():
-                    raise ValueError(
-                        "pulsar needs znear and zfar values for "
-                        "the PerspectiveCameras. Please provide them as keyword "
-                        "argument to the forward method."
-                    )
-                znear = kwargs["znear"][cloud_idx]
-                zfar = kwargs["zfar"][cloud_idx]
-                if focal_length_conf.numel() == 2:
-                    focal_length_px = focal_length_conf[0]
-                else:
-                    if focal_length_conf.numel() != 1:
-                        raise ValueError(
-                            "Focal length not parsable: %s." % (str(focal_length_conf))
-                        )
-                    focal_length_px = focal_length_conf
-                focal_length = torch.tensor(
-                    [
-                        znear - 1e-6,
-                    ],
-                    dtype=torch.float32,
-                    device=focal_length_px.device,
+                raise ValueError(f"Focal length not parsable: {str(focal_length_conf)}.")
+            focal_length = torch.tensor(
+                [
+                    znear - 1e-6,
+                ],
+                dtype=torch.float32,
+                device=focal_length_px.device,
+            )
+            sensor_width = focal_length / focal_length_px * 2.0
+            principal_point_x = (
+                kwargs.get("principal_point", cameras.principal_point)[cloud_idx][0]
+                * 0.5
+                * self.renderer._renderer.width
+            )
+            principal_point_y = (
+                kwargs.get("principal_point", cameras.principal_point)[cloud_idx][1]
+                * 0.5
+                * self.renderer._renderer.height
+            )
+        else:
+            # Create a virtual focal length that is closer than znear.
+            znear = kwargs.get("znear", cameras.znear)[cloud_idx]
+            zfar = kwargs.get("zfar", cameras.zfar)[cloud_idx]
+            focal_length = znear - 1e-6
+            # Create a sensor size that matches the expected fov assuming this f.
+            afov = kwargs.get("fov", cameras.fov)[cloud_idx]
+            if kwargs.get("degrees", cameras.degrees):
+                afov *= math.pi / 180.0
+            sensor_width = math.tan(afov / 2.0) * 2.0 * focal_length
+            if (
+                kwargs.get("aspect_ratio", cameras.aspect_ratio)[cloud_idx]
+                - self.renderer._renderer.width / self.renderer._renderer.height
+                >= 1e-6
+            ):
+                raise ValueError(
+                    "The aspect ratio ("
+                    f"{kwargs.get('aspect_ratio', cameras.aspect_ratio)[cloud_idx]}) "
+                    "must agree with the resolution width / height ("
+                    f"{self.renderer._renderer.width / self.renderer._renderer.height})."  # noqa: B950
                 )
-                sensor_width = focal_length / focal_length_px * 2.0
-                principal_point_x = (
-                    kwargs.get("principal_point", cameras.principal_point)[cloud_idx][0]
-                    * 0.5
-                    * self.renderer._renderer.width
-                )
-                principal_point_y = (
-                    kwargs.get("principal_point", cameras.principal_point)[cloud_idx][1]
-                    * 0.5
-                    * self.renderer._renderer.height
-                )
+            principal_point_x, principal_point_y = (
+                torch.zeros((1,), dtype=torch.float32),
+                torch.zeros((1,), dtype=torch.float32),
+            )
         focal_length = _ensure_float_tensor(focal_length, device)
         sensor_width = _ensure_float_tensor(sensor_width, device)
         principal_point_x = _ensure_float_tensor(principal_point_x, device)
@@ -404,10 +396,7 @@ class PulsarPointsRenderer(nn.Module):
         else:
             point_dists = torch.norm((vert_pos - cam_pos), p=2, dim=1, keepdim=False)
             vert_rad = raster_rad / focal_length.to(vert_pos.device) * point_dists
-            if isinstance(self.rasterizer.cameras, PerspectiveCameras):
-                # NDC normalization happens through adjusted focal length.
-                pass
-            else:
+            if not isinstance(self.rasterizer.cameras, PerspectiveCameras):
                 vert_rad = vert_rad / 2.0  # NDC normalization.
         return vert_rad
 
@@ -508,7 +497,7 @@ class PulsarPointsRenderer(nn.Module):
             )
             # Clean kwargs for passing on.
             gamma = kwargs["gamma"][cloud_idx]
-            if "first_R_then_T" in kwargs.keys():
+            if "first_R_then_T" in kwargs:
                 raise ValueError("`first_R_then_T` is not supported in this interface.")
             otherargs = {
                 argn: argv

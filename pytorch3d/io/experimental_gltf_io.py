@@ -128,9 +128,7 @@ def _read_header(stream: BinaryIO) -> Optional[Tuple[int, int]]:
     header = stream.read(12)
     magic, version, length = struct.unpack("<III", header)
 
-    if magic != _GLTF_MAGIC:
-        return None
-    return version, length
+    return None if magic != _GLTF_MAGIC else (version, length)
 
 
 def _read_chunks(
@@ -250,10 +248,7 @@ class _GLTFLoader:
         bytesio = BytesIO(binary_data[offset : offset + length].tobytes())
         with Image.open(bytesio) as f:
             array = np.array(f)
-            if array.dtype == np.uint8:
-                return array.astype(np.float32) / 255.0
-            else:
-                return array
+            return array.astype(np.float32) / 255.0 if array.dtype == np.uint8 else array
 
     def _get_texture_map_image(self, image_index: int) -> torch.Tensor:
         """
@@ -357,9 +352,8 @@ class _GLTFLoader:
             primitive_attribute /= 255.0
         elif dtype == np.uint16:
             primitive_attribute /= 65535.0
-        else:
-            if dtype != np.float32:
-                raise ValueError("Unexpected data type")
+        elif dtype != np.float32:
+            raise ValueError("Unexpected data type")
         primitive_attribute = primitive_attribute.astype(dtype)
         return primitive_attribute
 
@@ -417,14 +411,12 @@ class _GLTFLoader:
                 map = torch.FloatTensor(material_roughness["baseColorFactor"])[
                     None, None, :3
                 ]
-            texture = TexturesUV(
+            return TexturesUV(
                 # pyre-fixme[61]: `map` may not be initialized here.
                 maps=[map],  # alpha channel ignored
                 faces_uvs=[faces_uvs],
                 verts_uvs=[verts_uvs],
             )
-            return texture
-
         return None
 
     def load(self, include_textures: bool) -> List[Tuple[Optional[str], Meshes]]:
@@ -536,8 +528,7 @@ def load_meshes(
     """
     with _open_file(path, path_manager, "rb") as f:
         loader = _GLTFLoader(cast(BinaryIO, f))
-    names_meshes_list = loader.load(include_textures=include_textures)
-    return names_meshes_list
+    return loader.load(include_textures=include_textures)
 
 
 class _GLTFWriter:
@@ -591,9 +582,24 @@ class _GLTFWriter:
         self._json_data["textures"].append(texture)
 
     def _write_accessor_json(self, key: str) -> Tuple[int, np.ndarray]:
-        name = "Node-Mesh_%s" % key
+        name = f"Node-Mesh_{key}"
         byte_offset = 0
-        if key == "positions":
+        if key == "indices":
+            component_type = _ComponentType.UNSIGNED_SHORT
+            data = (
+                self.mesh.faces_packed()
+                .cpu()
+                .numpy()
+                .astype(_ITEM_TYPES[component_type])
+            )
+            element_type = "SCALAR"
+            buffer_view = 1
+            element_min = list(map(int, np.min(data, keepdims=True)))
+            element_max = list(map(int, np.max(data, keepdims=True)))
+            byte_per_element = (
+                3 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.UNSIGNED_SHORT]]
+            )
+        elif key == "positions":
             data = self.mesh.verts_packed().cpu().numpy()
             component_type = _ComponentType.FLOAT
             element_type = "VEC3"
@@ -610,21 +616,6 @@ class _GLTFWriter:
             element_min = list(map(float, np.min(data, axis=0)))
             element_max = list(map(float, np.max(data, axis=0)))
             byte_per_element = 2 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.FLOAT]]
-        elif key == "indices":
-            component_type = _ComponentType.UNSIGNED_SHORT
-            data = (
-                self.mesh.faces_packed()
-                .cpu()
-                .numpy()
-                .astype(_ITEM_TYPES[component_type])
-            )
-            element_type = "SCALAR"
-            buffer_view = 1
-            element_min = list(map(int, np.min(data, keepdims=True)))
-            element_max = list(map(int, np.max(data, keepdims=True)))
-            byte_per_element = (
-                3 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.UNSIGNED_SHORT]]
-            )
         else:
             raise NotImplementedError(
                 "invalid key accessor, should be one of positions, indices or texcoords"
@@ -649,24 +640,21 @@ class _GLTFWriter:
         if key not in ["positions", "texcoords", "indices"]:
             raise ValueError("key must be one of positions, texcoords or indices")
 
-        bufferview = {
-            "name": "bufferView_%s" % key,
-            "buffer": 0,
-        }
+        bufferview = {"name": f"bufferView_{key}", "buffer": 0}
         target = _TargetType.ARRAY_BUFFER
-        if key == "positions":
+        if key == "indices":
+            byte_per_element = (
+                3 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.UNSIGNED_SHORT]]
+            )
+            target = _TargetType.ELEMENT_ARRAY_BUFFER
+
+        elif key == "positions":
             byte_per_element = 3 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.FLOAT]]
             bufferview["byteStride"] = int(byte_per_element)
         elif key == "texcoords":
             byte_per_element = 2 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.FLOAT]]
             target = _TargetType.ARRAY_BUFFER
             bufferview["byteStride"] = int(byte_per_element)
-        elif key == "indices":
-            byte_per_element = (
-                3 * _DTYPE_BYTES[_ITEM_TYPES[_ComponentType.UNSIGNED_SHORT]]
-            )
-            target = _TargetType.ELEMENT_ARRAY_BUFFER
-
         bufferview["target"] = target
         bufferview["byteOffset"] = kwargs.get("offset")
         bufferview["byteLength"] = kwargs.get("byte_length")
@@ -683,9 +671,9 @@ class _GLTFWriter:
         image_data_byte_length = len(image_data)
         bufferview_image = {
             "buffer": 0,
+            "byteOffset": kwargs.get("offset"),
+            "byteLength": image_data_byte_length,
         }
-        bufferview_image["byteOffset"] = kwargs.get("offset")
-        bufferview_image["byteLength"] = image_data_byte_length
         self._json_data["bufferViews"].append(bufferview_image)
 
         image = {"name": "texture", "mimeType": "image/png", "bufferView": 3}

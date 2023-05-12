@@ -55,7 +55,7 @@ class ModelDBIR(ImplicitronModelBase):
         evaluation_mode: EvaluationMode = EvaluationMode.EVALUATION,
         frame_type: List[str],
         **kwargs,
-    ) -> Dict[str, Any]:  # TODO: return a namedtuple or dataclass
+    ) -> Dict[str, Any]:    # TODO: return a namedtuple or dataclass
         """
         Given a set of input source cameras images and depth maps, unprojects
         all RGBD maps to a colored point cloud and renders into the target views.
@@ -143,9 +143,7 @@ class ModelDBIR(ImplicitronModelBase):
             }
         )
 
-        preds = {
+        return {
             "implicitron_render": implicitron_render,
             "point_cloud": point_cloud,
         }
-
-        return preds

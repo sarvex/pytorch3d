@@ -45,9 +45,10 @@ class DataLoaderMap:
         """
         Get one of the data loaders by key (name of data split)
         """
-        if split not in ["train", "val", "test"]:
+        if split in {"train", "val", "test"}:
+            return getattr(self, split)
+        else:
             raise ValueError(f"{split} was not a valid split name (train/val/test)")
-        return getattr(self, split)
 
 
 class DataLoaderMapProviderBase(ReplaceableBase):
@@ -127,11 +128,7 @@ class SimpleDataLoaderMapProvider(DataLoaderMapProviderBase):
                 **data_loader_kwargs,
             )
 
-        if num_batches > 0:
-            num_samples = self.batch_size * num_batches
-        else:
-            num_samples = None
-
+        num_samples = self.batch_size * num_batches if num_batches > 0 else None
         # sample with replacement only if a custom number of samples is specified
         sampler = RandomSampler(
             dataset,

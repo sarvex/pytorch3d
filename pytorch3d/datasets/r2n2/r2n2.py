@@ -115,20 +115,14 @@ class R2N2(ShapeNetBase):  # pragma: no cover
         # Check if the folder containing R2N2 renderings is included in r2n2_dir.
         if not path.isdir(path.join(r2n2_dir, views_rel_path)):
             self.return_images = False
-            msg = (
-                "%s not found in %s. R2N2 renderings will "
-                "be skipped when returning models."
-            ) % (views_rel_path, r2n2_dir)
+            msg = f"{views_rel_path} not found in {r2n2_dir}. R2N2 renderings will be skipped when returning models."
             warnings.warn(msg)
 
         self.return_voxels = return_voxels
         # Check if the folder containing voxel coordinates is included in r2n2_dir.
         if not path.isdir(path.join(r2n2_dir, voxels_rel_path)):
             self.return_voxels = False
-            msg = (
-                "%s not found in %s. Voxel coordinates will "
-                "be skipped when returning models."
-            ) % (voxels_rel_path, r2n2_dir)
+            msg = f"{voxels_rel_path} not found in {r2n2_dir}. Voxel coordinates will be skipped when returning models."
             warnings.warn(msg)
 
         synset_set = set()
@@ -143,10 +137,7 @@ class R2N2(ShapeNetBase):  # pragma: no cover
                 path.isdir(path.join(shapenet_dir, synset))
                 and synset in self.synset_dict
             ):
-                msg = (
-                    "Synset category %s from the splits file is either not "
-                    "present in %s or not part of the standard R2N2 dataset."
-                ) % (synset, shapenet_dir)
+                msg = f"Synset category {synset} from the splits file is either not present in {shapenet_dir} or not part of the standard R2N2 dataset."
                 warnings.warn(msg)
                 continue
 
@@ -158,11 +149,7 @@ class R2N2(ShapeNetBase):  # pragma: no cover
                 # Examine if the given model is present in the ShapeNetCore path.
                 shapenet_path = path.join(shapenet_dir, synset, model)
                 if not path.isdir(shapenet_path):
-                    msg = "Model %s from category %s is not present in %s." % (
-                        model,
-                        synset,
-                        shapenet_dir,
-                    )
+                    msg = f"Model {model} from category {synset} is not present in {shapenet_dir}."
                     warnings.warn(msg)
                     continue
                 self.synset_ids.append(synset)
@@ -184,18 +171,12 @@ class R2N2(ShapeNetBase):  # pragma: no cover
             tabulate(synset_num_instances, headers, numalign="left", stralign="center")
         )
 
-        # Examine if all the synsets in the standard R2N2 mapping are present.
-        # Update self.synset_inv so that it only includes the loaded categories.
-        synset_not_present = [
+        if synset_not_present := [
             self.synset_inv.pop(self.synset_dict[synset])
             for synset in self.synset_dict
             if synset not in synset_set
-        ]
-        if len(synset_not_present) > 0:
-            msg = (
-                "The following categories are included in R2N2's"
-                "official mapping but not found in the dataset location %s: %s"
-            ) % (shapenet_dir, ", ".join(synset_not_present))
+        ]:
+            msg = f"""The following categories are included in R2N2'sofficial mapping but not found in the dataset location {shapenet_dir}: {", ".join(synset_not_present)}"""
             warnings.warn(msg)
 
     def __getitem__(self, model_idx, view_idxs: Optional[List[int]] = None) -> Dict:
@@ -231,8 +212,7 @@ class R2N2(ShapeNetBase):  # pragma: no cover
                 view_idxs = [view_idxs]
             if not isinstance(view_idxs, list) and not torch.is_tensor(view_idxs):
                 raise TypeError(
-                    "view_idxs is of type %s but it needs to be a list."
-                    % type(view_idxs)
+                    f"view_idxs is of type {type(view_idxs)} but it needs to be a list."
                 )
 
         model_views = self.views_per_model_list[model_idx]

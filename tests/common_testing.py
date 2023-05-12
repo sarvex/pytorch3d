@@ -166,11 +166,9 @@ class TestCaseMixin(unittest.TestCase):
         self.assertEqual(np.shape(input), np.shape(other))
 
         backend = torch if torch.is_tensor(input) else np
-        close = backend.allclose(
+        if close := backend.allclose(
             input, other, rtol=rtol, atol=atol, equal_nan=equal_nan
-        )
-
-        if close:
+        ):
             return
 
         # handle bool case

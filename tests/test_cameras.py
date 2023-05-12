@@ -533,26 +533,25 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
         R = so3_exp_map(torch.randn(batch_size, 3) * 3.0)
         screen_cam_params = {"R": R, "T": T}
         ndc_cam_params = {"R": R, "T": T}
-        if cam_type in (OrthographicCameras, PerspectiveCameras):
-            fcl = torch.rand((batch_size, 2)) * 3.0 + 0.1
-            prc = torch.randn((batch_size, 2)) * 0.2
-            # (height, width)
-            image_size = torch.randint(low=2, high=64, size=(batch_size, 2))
-            # scale
-            scale = (image_size.min(dim=1, keepdim=True).values) / 2.0
-
-            ndc_cam_params["focal_length"] = fcl
-            ndc_cam_params["principal_point"] = prc
-            ndc_cam_params["image_size"] = image_size
-
-            screen_cam_params["image_size"] = image_size
-            screen_cam_params["focal_length"] = fcl * scale
-            screen_cam_params["principal_point"] = (
-                image_size[:, [1, 0]]
-            ) / 2.0 - prc * scale
-            screen_cam_params["in_ndc"] = False
-        else:
+        if cam_type not in (OrthographicCameras, PerspectiveCameras):
             raise ValueError(str(cam_type))
+        fcl = torch.rand((batch_size, 2)) * 3.0 + 0.1
+        prc = torch.randn((batch_size, 2)) * 0.2
+        # (height, width)
+        image_size = torch.randint(low=2, high=64, size=(batch_size, 2))
+        # scale
+        scale = (image_size.min(dim=1, keepdim=True).values) / 2.0
+
+        ndc_cam_params["focal_length"] = fcl
+        ndc_cam_params["principal_point"] = prc
+        ndc_cam_params["image_size"] = image_size
+
+        screen_cam_params["image_size"] = image_size
+        screen_cam_params["focal_length"] = fcl * scale
+        screen_cam_params["principal_point"] = (
+            image_size[:, [1, 0]]
+        ) / 2.0 - prc * scale
+        screen_cam_params["in_ndc"] = False
         return cam_type(**ndc_cam_params), cam_type(**screen_cam_params)
 
     def test_unproject_points(self, batch_size=50, num_points=100):
@@ -586,11 +585,7 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
             xy_depth = torch.cat((xy, depth), dim=2)
 
             for to_world in (False, True):
-                if to_world:
-                    matching_xyz = xyz
-                else:
-                    matching_xyz = xyz_cam
-
+                matching_xyz = xyz if to_world else xyz_cam
                 # if we have FoV (= OpenGL) cameras
                 # test for scaled_depth_input=True/False
                 if cam_type in (
@@ -600,10 +595,7 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
                     FoVOrthographicCameras,
                 ):
                     for scaled_depth_input in (True, False):
-                        if scaled_depth_input:
-                            xy_depth_ = xyz_proj
-                        else:
-                            xy_depth_ = xy_depth
+                        xy_depth_ = xyz_proj if scaled_depth_input else xy_depth
                         xyz_unproj = cameras.unproject_points(
                             xy_depth_,
                             world_coordinates=to_world,
@@ -626,11 +618,7 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
         Checks that an unprojection of a randomly projected point cloud
         stays the same.
         """
-        if device == "cuda":
-            device = torch.device("cuda:0")
-        else:
-            device = torch.device("cpu")
-
+        device = torch.device("cuda:0") if device == "cuda" else torch.device("cpu")
         str2cls = {  # noqa
             "OpenGLOrthographicCameras": OpenGLOrthographicCameras,
             "OpenGLPerspectiveCameras": OpenGLPerspectiveCameras,
@@ -698,10 +686,7 @@ class TestCamerasCommon(TestCaseMixin, unittest.TestCase):
         stays the same.
         """
 
-        if device == "cuda":
-            device = torch.device("cuda:0")
-        else:
-            device = torch.device("cpu")
+        device = torch.device("cuda:0") if device == "cuda" else torch.device("cpu")
         str2cls = {  # noqa
             "OpenGLOrthographicCameras": OpenGLOrthographicCameras,
             "OpenGLPerspectiveCameras": OpenGLPerspectiveCameras,
@@ -1426,7 +1411,7 @@ class TestFishEyeProjection(TestCaseMixin, unittest.TestCase):
         thin_prism_params = torch.cat([thin_prism_params, thin_prism_params1], dim=0)
         if combination is None:
             combination = [True, True, True]
-        cameras = FishEyeCameras(
+        return FishEyeCameras(
             use_radial=combination[0],
             use_tangential=combination[1],
             use_thin_prism=combination[2],
@@ -1436,8 +1421,6 @@ class TestFishEyeProjection(TestCaseMixin, unittest.TestCase):
             tangential_params=tangential_params,
             thin_prism_params=thin_prism_params,
         )
-
-        return cameras
 
     def test_distortion_params_set_to_zeors(self):
         # test case 1: all distortion params are 0. Note that

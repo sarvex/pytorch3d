@@ -706,6 +706,4 @@ def _convert_meshes_to_gl_ndc(
             [height / width, 1, 1], dtype=dtype, device=device
         )
 
-    meshes_gl_ndc = meshes_world.update_padded(new_verts_padded=verts_ndc)
-
-    return meshes_gl_ndc
+    return meshes_world.update_padded(new_verts_padded=verts_ndc)

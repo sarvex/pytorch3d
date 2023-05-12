@@ -93,7 +93,7 @@ def main(cfg: DictConfig):
             trajectory_scale=cfg.test.trajectory_scale,
         )
         # store the video in directory (checkpoint_file - extension + '_video')
-        export_dir = os.path.splitext(checkpoint_path)[0] + "_video"
+        export_dir = f"{os.path.splitext(checkpoint_path)[0]}_video"
         os.makedirs(export_dir, exist_ok=True)
     else:
         raise ValueError(f"Unknown test mode {cfg.test_mode}.")

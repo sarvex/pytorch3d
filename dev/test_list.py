@@ -39,14 +39,14 @@ def tests_from_file(path: Path, base: str) -> List[str]:
             continue
         if not cls.name.startswith("Test"):
             continue
-        class_base = base + "." + cls.name
+        class_base = f"{base}.{cls.name}"
         out.append(class_base)
         for method in cls.body:
             if not isinstance(method, ast.FunctionDef):
                 continue
             if not method.name.startswith("test"):
                 continue
-            out.append(class_base + "." + method.name)
+            out.append(f"{class_base}.{method.name}")
     return out
 
 

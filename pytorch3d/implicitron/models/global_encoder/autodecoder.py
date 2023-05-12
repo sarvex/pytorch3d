@@ -136,7 +136,7 @@ class Autodecoder(Configurable, torch.nn.Module):
             Constructed key_map if it exists in the state_dict
             else raises a warning only.
         """
-        key_map_key = prefix + "_key_map"
+        key_map_key = f"{prefix}_key_map"
         if key_map_key in state_dict:
             key_map_dict = state_dict.pop(key_map_key)
             self._key_map = self._build_key_map(key_map_dict=key_map_dict)
@@ -158,6 +158,6 @@ def _save_key_map_hook(
             module
         local_metadata (dict): a dict containing the metadata for this module.
     """
-    key_map_key = prefix + "_key_map"
+    key_map_key = f"{prefix}_key_map"
     key_map_dict = dict(self._key_map.items())
     state_dict[key_map_key] = key_map_dict

@@ -34,8 +34,7 @@ def cv2_project_points(pts, rvec, tvec, camera_matrix):
         camera_matrix.bmm(R.bmm(pts.permute(0, 2, 1)) + tvec[:, :, None])
     ).permute(0, 2, 1)
     depth = pts_proj_3d[..., 2:]
-    pts_proj_2d = pts_proj_3d[..., :2] / depth
-    return pts_proj_2d
+    return pts_proj_3d[..., :2] / depth
 
 
 class TestCameraConversions(TestCaseMixin, unittest.TestCase):

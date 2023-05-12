@@ -128,11 +128,10 @@ def ray_bundle_variables_to_ray_points(
         rays_points: A tensor of shape `(..., num_points_per_ray, 3)`
             containing the points sampled along each ray.
     """
-    rays_points = (
+    return (
         rays_origins[..., None, :]
         + rays_lengths[..., :, None] * rays_directions[..., None, :]
     )
-    return rays_points
 
 
 def _validate_ray_bundle_variables(

@@ -192,7 +192,7 @@ class ImplicitronOptimizerFactory(OptimizerFactoryBase):
                 optimizer, _get_lr, verbose=False
             )
         else:
-            raise ValueError("no such lr policy %s" % self.lr_policy)
+            raise ValueError(f"no such lr policy {self.lr_policy}")
 
         # When loading from checkpoint, this will make sure that the
         # lr is correctly set even after returning.
@@ -234,15 +234,15 @@ class ImplicitronOptimizerFactory(OptimizerFactoryBase):
             logger.info(f"Found previous optimizer state {save_path} -> resuming.")
             opt_path = model_io.get_optimizer_path(save_path)
 
-            if os.path.isfile(opt_path):
-                map_location = None
-                if accelerator is not None and not accelerator.is_local_main_process:
-                    map_location = {
-                        "cuda:%d" % 0: "cuda:%d" % accelerator.local_process_index
-                    }
-                optimizer_state = torch.load(opt_path, map_location)
-            else:
+            if not os.path.isfile(opt_path):
                 raise FileNotFoundError(f"Optimizer state {opt_path} does not exist.")
+            map_location = (
+                {"cuda:%d" % 0: "cuda:%d" % accelerator.local_process_index}
+                if accelerator is not None
+                and not accelerator.is_local_main_process
+                else None
+            )
+            optimizer_state = torch.load(opt_path, map_location)
         return optimizer_state
 
     def _get_param_groups(
@@ -313,7 +313,7 @@ class ImplicitronOptimizerFactory(OptimizerFactoryBase):
                 mapping_to_add = {
                     name[len(child_name) + 1 :]: group
                     for name, group in mapping.items()
-                    if name.startswith(child_name + ".")
+                    if name.startswith(f"{child_name}.")
                 }
                 traverse(child, mapping.get(child_name, default_group), mapping_to_add)
 

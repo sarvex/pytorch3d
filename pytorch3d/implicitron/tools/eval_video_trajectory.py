@@ -79,7 +79,11 @@ def generate_eval_video_cameras(
     if remove_outliers_rate > 0.0:
         train_cameras = _remove_outlier_cameras(train_cameras, remove_outliers_rate)
 
-    if trajectory_type in ("figure_eight", "trefoil_knot", "figure_eight_knot"):
+    if trajectory_type in {
+        "figure_eight",
+        "trefoil_knot",
+        "figure_eight_knot",
+    }:
         cam_centers = train_cameras.get_camera_center()
         # get the nearest camera center to the mean of centers
         mean_camera_idx = (
@@ -93,12 +97,12 @@ def generate_eval_video_cameras(
             time = torch.linspace(0, 2 * math.pi, n_eval_cams + 1)[:n_eval_cams]
         else:
             assert time.numel() == n_eval_cams
-        if trajectory_type == "trefoil_knot":
-            traj = _trefoil_knot(time)
+        if trajectory_type == "figure_eight":
+            traj = _figure_eight(time)
         elif trajectory_type == "figure_eight_knot":
             traj = _figure_eight_knot(time)
-        elif trajectory_type == "figure_eight":
-            traj = _figure_eight(time)
+        elif trajectory_type == "trefoil_knot":
+            traj = _trefoil_knot(time)
         else:
             raise ValueError(f"bad trajectory type: {trajectory_type}")
         traj[:, 2] -= traj[:, 2].max()
@@ -177,20 +181,13 @@ def generate_eval_video_cameras(
             n_eval_cams, 1
         )
 
-    test_cameras = PerspectiveCameras(
+    return PerspectiveCameras(
         focal_length=focal_length,
         principal_point=principal_point,
         R=R,
         T=T,
         device=focal_length.device,
     )
-
-    # _visdom_plot_scene(
-    #     train_cameras,
-    #     test_cameras,
-    # )
-
-    return test_cameras
 
 
 def _remove_outlier_cameras(

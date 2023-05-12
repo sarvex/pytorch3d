@@ -131,8 +131,7 @@ T = TypeVar("T", bound=torch.Tensor)
 
 def bbox_xyxy_to_xywh(xyxy: T) -> T:
     wh = xyxy[2:] - xyxy[:2]
-    xywh = torch.cat([xyxy[:2], wh])
-    return xywh  # pyre-ignore
+    return torch.cat([xyxy[:2], wh])
 
 
 def get_clamp_bbox(
@@ -160,9 +159,7 @@ def get_clamp_bbox(
         )
 
     bbox[2:] = torch.clamp(bbox[2:], 2)  # set min height, width to 2 along both axes
-    bbox_xyxy = bbox_xywh_to_xyxy(bbox, clamp_size=2)
-
-    return bbox_xyxy
+    return bbox_xywh_to_xyxy(bbox, clamp_size=2)
 
 
 def rescale_bbox(
@@ -242,7 +239,7 @@ def load_mask(path: str) -> np.ndarray:
 
 def load_depth(path: str, scale_adjustment: float) -> np.ndarray:
     if not path.lower().endswith(".png"):
-        raise ValueError('unsupported depth file name "%s"' % path)
+        raise ValueError(f'unsupported depth file name "{path}"')
 
     d = load_16big_png_depth(path) * scale_adjustment
     d[~np.isfinite(d)] = 0.0
@@ -269,7 +266,7 @@ def load_1bit_png_mask(file: str) -> np.ndarray:
 
 def load_depth_mask(path: str) -> np.ndarray:
     if not path.lower().endswith(".png"):
-        raise ValueError('unsupported depth mask file name "%s"' % path)
+        raise ValueError(f'unsupported depth mask file name "{path}"')
     m = load_1bit_png_mask(path)
     return m[None]  # fake feature channel
 

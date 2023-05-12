@@ -111,13 +111,14 @@ class Cube:
             vol[p2[2]][p2[1]][p2[0]],
         )
         point = None
-        if abs(isolevel - val1) < EPS:
+        if (
+            abs(isolevel - val1) < EPS
+            or abs(isolevel - val2) >= EPS
+            and abs(val1 - val2) < EPS
+        ):
             point = p1
         elif abs(isolevel - val2) < EPS:
             point = p2
-        elif abs(val1 - val2) < EPS:
-            point = p1
-
         if point is None:
             mu = (isolevel - val1) / (val2 - val1)
             x1, y1, z1 = p1
@@ -211,7 +212,7 @@ def marching_cubes_naive(
                             tri = []
                             ps = []
 
-        if len(faces) > 0 and len(verts) > 0:
+        if faces and verts:
             verts = torch.tensor(verts, dtype=vol.dtype)
             # Convert from world coordinates ([0, D-1], [0, H-1], [0, W-1]) to
             # local coordinates in the range [-1, 1]

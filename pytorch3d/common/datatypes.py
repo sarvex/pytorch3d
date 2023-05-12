@@ -52,8 +52,4 @@ def get_device(x, device: Optional[Device] = None) -> torch.device:
         return make_device(device)
 
     # Set device based on input tensor
-    if torch.is_tensor(x):
-        return x.device
-
-    # Default device is cpu
-    return torch.device("cpu")
+    return x.device if torch.is_tensor(x) else torch.device("cpu")

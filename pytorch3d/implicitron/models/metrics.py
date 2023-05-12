@@ -218,7 +218,7 @@ class ViewMetrics(ViewMetricsBase):
                     depth_map,
                     fg_probability,
                     mask_crop,
-                    keys_prefix=(keys_prefix + "prev_stage_"),
+                    keys_prefix=f"{keys_prefix}prev_stage_",
                 )
             )
 

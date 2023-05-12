@@ -19,8 +19,7 @@ def aws_s3_cmd(args) -> List[str]:
     This function returns the full args for subprocess to do a command
     with aws.
     """
-    cmd_args = ["aws", "s3", "--profile", "saml"] + args
-    return cmd_args
+    return ["aws", "s3", "--profile", "saml"] + args
 
 
 def fs3_exists(path) -> bool:

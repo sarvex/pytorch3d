@@ -148,19 +148,13 @@ def load_dataclass(f: IO, cls: Type[_X], binary: bool = False) -> _X:
         cls: The class of the loaded dataclass.
         binary: Set to True if `f` is a file handle, else False.
     """
-    if binary:
-        asdict = json.loads(f.read().decode("utf8"))
-    else:
-        asdict = json.load(f)
+    asdict = json.loads(f.read().decode("utf8")) if binary else json.load(f)
+    if not isinstance(asdict, list):
+        return _dataclass_from_dict(asdict, cls)
 
-    if isinstance(asdict, list):
-        # in the list case, run a faster "vectorized" version
-        cls = get_args(cls)[0]
-        res = list(_dataclass_list_from_dict_list(asdict, cls))
-    else:
-        res = _dataclass_from_dict(asdict, cls)
-
-    return res
+    # in the list case, run a faster "vectorized" version
+    cls = get_args(cls)[0]
+    return list(_dataclass_list_from_dict_list(asdict, cls))
 
 
 def _dataclass_list_from_dict_list(dlist, typeannot):
@@ -349,7 +343,4 @@ def _resolve_optional(type_: Any) -> Tuple[bool, Any]:
         args = get_args(type_)
         if len(args) == 2 and args[1] == type(None):  # noqa E721
             return True, args[0]
-    if type_ is Any:
-        return True, Any
-
-    return False, type_
+    return (True, Any) if type_ is Any else (False, type_)

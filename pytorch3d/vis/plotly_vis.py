@@ -63,7 +63,7 @@ def _is_heterogeneous_ray_bundle(struct: Union[List[Struct], Struct]) -> bool:
     return hasattr(struct, "camera_counts") and struct.camera_counts is not None
 
 
-def get_camera_wireframe(scale: float = 0.3):  # pragma: no cover
+def get_camera_wireframe(scale: float = 0.3):    # pragma: no cover
     """
     Returns a wireframe of a 3D line-plot of a camera symbol.
     """
@@ -76,8 +76,7 @@ def get_camera_wireframe(scale: float = 0.3):  # pragma: no cover
     C = torch.zeros(3)
     F = torch.tensor([0, 0, 3])
     camera_points = [a, up1, up2, up1, b, d, c, a, C, b, d, C, c, C, F]
-    lines = torch.stack([x.float() for x in camera_points]) * scale
-    return lines
+    return torch.stack([x.float() for x in camera_points]) * scale
 
 
 class AxisArgs(NamedTuple):  # pragma: no cover
@@ -114,7 +113,7 @@ def plot_scene(
     raybundle_ray_point_marker_size: int = 1,
     raybundle_ray_line_width: int = 1,
     **kwargs,
-):  # pragma: no cover
+):    # pragma: no cover
     """
     Main function to visualize Cameras, Meshes, Pointclouds, and RayBundle.
     Plots input Cameras, Meshes, Pointclouds, and RayBundle data into named subplots,
@@ -300,7 +299,7 @@ def plot_scene(
     viewpoints_eye_at_up_world = None
     if viewpoint_cameras:
         n_viewpoint_cameras = len(viewpoint_cameras)
-        if n_viewpoint_cameras == len(subplots) or n_viewpoint_cameras == 1:
+        if n_viewpoint_cameras in [len(subplots), 1]:
             # Calculate the vectors eye, at, up in world space
             # to initialize the position of the camera in
             # the plotly figure
@@ -348,12 +347,11 @@ def plot_scene(
                 )
             else:
                 raise ValueError(
-                    "struct {} is not a Cameras, Meshes, Pointclouds,".format(struct)
-                    + " , RayBundle or HeterogeneousRayBundle object."
+                    f"struct {struct} is not a Cameras, Meshes, Pointclouds, , RayBundle or HeterogeneousRayBundle object."
                 )
 
         # Ensure update for every subplot.
-        plot_scene = "scene" + str(subplot_idx + 1)
+        plot_scene = f"scene{str(subplot_idx + 1)}"
         current_layout = fig["layout"][plot_scene]
         xaxis = current_layout["xaxis"]
         yaxis = current_layout["yaxis"]
@@ -420,7 +418,7 @@ def plot_batch_individually(
     extend_struct: bool = True,
     subplot_titles: Optional[List[str]] = None,
     **kwargs,
-):  # pragma: no cover
+):    # pragma: no cover
     """
     This is a higher level plotting function than plot_scene, for plotting
     Cameras, Meshes, Pointclouds, and RayBundle in simple cases. The simplest use
@@ -496,7 +494,7 @@ def plot_batch_individually(
         for struct in batched_structs:
             struct_len = _get_len(struct)
             if struct_len not in (1, max_size):
-                msg = "invalid batch size {} provided: {}".format(struct_len, struct)
+                msg = f"invalid batch size {struct_len} provided: {struct}"
                 raise ValueError(msg)
     else:
         max_size = _get_len(batched_structs)
@@ -505,10 +503,9 @@ def plot_batch_individually(
         msg = "No data is provided with at least one element"
         raise ValueError(msg)
 
-    if subplot_titles:
-        if len(subplot_titles) != max_size:
-            msg = "invalid number of subplot titles"
-            raise ValueError(msg)
+    if subplot_titles and len(subplot_titles) != max_size:
+        msg = "invalid number of subplot titles"
+        raise ValueError(msg)
 
     # if we are dealing with HeterogeneousRayBundle of ImplicitronRayBundle create
     # first indexes for faster
@@ -524,7 +521,7 @@ def plot_batch_individually(
         subplot_title = (
             subplot_titles[scene_num]
             if subplot_titles
-            else "subplot " + str(scene_num + 1)
+            else f"subplot {str(scene_num + 1)}"
         )
         scene_dictionary[subplot_title] = {}
 
@@ -568,7 +565,7 @@ def _add_struct_from_batch(
     scene_dictionary: Dict[str, Dict[str, Struct]],
     trace_idx: int = 1,
     first_idxs: Optional[torch.Tensor] = None,
-) -> None:  # pragma: no cover
+) -> None:    # pragma: no cover
     """
     Adds the struct corresponding to the given scene_num index to
     a provided scene_dictionary to be passed in to plot_scene
@@ -632,7 +629,7 @@ def _add_struct_from_batch(
         struct_idx = min(scene_num, _get_len(batched_struct) - 1)
         # pyre-ignore[16]
         struct = batched_struct[struct_idx]
-    trace_name = "trace{}-{}".format(scene_num + 1, trace_idx)
+    trace_name = f"trace{scene_num + 1}-{trace_idx}"
     scene_dictionary[subplot_title][trace_name] = struct
 
 
@@ -643,7 +640,7 @@ def _add_mesh_trace(
     subplot_idx: int,
     ncols: int,
     lighting: Lighting,
-) -> None:  # pragma: no cover
+) -> None:    # pragma: no cover
     """
     Adds a trace rendering a Meshes object to the passed in figure, with
     a given name and in a specific subplot.
@@ -701,7 +698,7 @@ def _add_mesh_trace(
     )
 
     # Access the current subplot's scene configuration
-    plot_scene = "scene" + str(subplot_idx + 1)
+    plot_scene = f"scene{str(subplot_idx + 1)}"
     current_layout = fig["layout"][plot_scene]
 
     # update the bounds of the axes for the current trace
@@ -717,7 +714,7 @@ def _add_pointcloud_trace(
     ncols: int,
     max_points_per_pointcloud: int,
     marker_size: int,
-) -> None:  # pragma: no cover
+) -> None:    # pragma: no cover
     """
     Adds a trace rendering a Pointclouds object to the passed in figure, with
     a given name and in a specific subplot.
@@ -763,7 +760,7 @@ def _add_pointcloud_trace(
     )
 
     # Access the current subplot's scene configuration
-    plot_scene = "scene" + str(subplot_idx + 1)
+    plot_scene = f"scene{str(subplot_idx + 1)}"
     current_layout = fig["layout"][plot_scene]
 
     # update the bounds of the axes for the current trace
@@ -779,7 +776,7 @@ def _add_camera_trace(
     subplot_idx: int,
     ncols: int,
     camera_scale: float,
-) -> None:  # pragma: no cover
+) -> None:    # pragma: no cover
     """
     Adds a trace rendering a Cameras object to the passed in figure, with
     a given name and in a specific subplot.
@@ -817,7 +814,7 @@ def _add_camera_trace(
     )
 
     # Access the current subplot's scene configuration
-    plot_scene = "scene" + str(subplot_idx + 1)
+    plot_scene = f"scene{str(subplot_idx + 1)}"
     current_layout = fig["layout"][plot_scene]
 
     # flatten for bounds calculations
@@ -837,7 +834,7 @@ def _add_ray_bundle_trace(
     max_points_per_ray: int,
     marker_size: int,
     line_width: int,
-) -> None:  # pragma: no cover
+) -> None:    # pragma: no cover
     """
     Adds a trace rendering a ray bundle object
     to the passed in figure, with a given name and in a specific subplot.
@@ -946,7 +943,7 @@ def _add_ray_bundle_trace(
             y=ray_points[:, 1],
             z=ray_points[:, 2],
             mode="markers",
-            name=trace_name + "_points",
+            name=f"{trace_name}_points",
             marker={"size": marker_size},
         ),
         row=row,
@@ -954,7 +951,7 @@ def _add_ray_bundle_trace(
     )
 
     # Access the current subplot's scene configuration
-    plot_scene = "scene" + str(subplot_idx + 1)
+    plot_scene = f"scene{str(subplot_idx + 1)}"
     current_layout = fig["layout"][plot_scene]
 
     # update the bounds of the axes for the current trace
@@ -966,7 +963,7 @@ def _add_ray_bundle_trace(
 
 def _gen_fig_with_subplots(
     batch_size: int, ncols: int, subplot_titles: List[str]
-):  # pragma: no cover
+):    # pragma: no cover
     """
     Takes in the number of objects to be plotted and generate a plotly figure
     with the appropriate number and orientation of titled subplots.
@@ -984,15 +981,13 @@ def _gen_fig_with_subplots(
     fig_cols = ncols
     fig_type = [{"type": "scene"}]
     specs = [fig_type * fig_cols] * fig_rows
-    # subplot_titles must have one title per subplot
-    fig = make_subplots(
+    return make_subplots(
         rows=fig_rows,
         cols=fig_cols,
         specs=specs,
         subplot_titles=subplot_titles,
         column_widths=[1.0] * fig_cols,
     )
-    return fig
 
 
 def _update_axes_bounds(

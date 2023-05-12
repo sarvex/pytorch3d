@@ -260,8 +260,6 @@ class Meshes:
             msg = "Expected textures to be an instance of type TexturesBase; got %r"
             raise ValueError(msg % type(textures))
 
-        self.textures = textures
-
         # Indicates whether the meshes in the list/batch have the same number
         # of faces and vertices.
         self.equisized = False
@@ -338,6 +336,7 @@ class Meshes:
         # Packed representation of Laplacian Matrix
         self._laplacian_packed = None
 
+        self.textures = textures
         # Identify type of verts and faces.
         if isinstance(verts, list) and isinstance(faces, list):
             self._verts_list = verts
@@ -348,9 +347,8 @@ class Meshes:
             self.valid = torch.zeros((self._N,), dtype=torch.bool, device=self.device)
             if self._N > 0:
                 self.device = self._verts_list[0].device
-                if not (
-                    all(v.device == self.device for v in verts)
-                    and all(f.device == self.device for f in faces)
+                if any(v.device != self.device for v in verts) or any(
+                    f.device != self.device for f in faces
                 ):
                     raise ValueError(
                         "All Verts and Faces tensors should be on same device."

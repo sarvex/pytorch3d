@@ -31,9 +31,7 @@ def endswith(path: PathOrStr, suffixes: Tuple[str, ...]) -> bool:
     """
     if isinstance(path, pathlib.Path):
         return path.suffix.lower() in suffixes
-    if isinstance(path, str):
-        return path.lower().endswith(suffixes)
-    return True
+    return path.lower().endswith(suffixes) if isinstance(path, str) else True
 
 
 class MeshFormatInterpreter:

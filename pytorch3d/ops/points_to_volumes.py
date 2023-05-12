@@ -391,12 +391,12 @@ def add_points_features_to_volume_densities_features(
             grid_sizes=grid_sizes,
         )
 
-    if mode == "trilinear":
-        splat = True
-    elif mode == "nearest":
+    if mode == "nearest":
         splat = False
+    elif mode == "trilinear":
+        splat = True
     else:
-        raise ValueError('No such interpolation mode "%s"' % mode)
+        raise ValueError(f'No such interpolation mode "{mode}"')
 
     if mask is None:
         mask = points_3d.new_ones(1).expand(points_3d.shape[:2])
@@ -414,7 +414,6 @@ def add_points_features_to_volume_densities_features(
     )
 
     if rescale_features:
-        # divide each feature by the total weight of the votes
         if splat:
             volume_features = volume_features / volume_densities.clamp(min_weight)
         else:
@@ -456,7 +455,16 @@ def _add_points_features_to_volume_densities_features_python(
         # otherwise just flatten
         volume_features_flatten = volume_features.view(ba, feature_dim, n_voxels)
 
-    if mode == "trilinear":  # do the splatting (trilinear interp)
+    if mode == "nearest":
+        volume_features, volume_densities = _round_points_to_volumes(
+            points_3d,
+            points_features,
+            volume_densities_flatten,
+            volume_features_flatten,
+            grid_sizes,
+            mask=mask,
+        )
+    elif mode == "trilinear":
         volume_features, volume_densities = _splat_points_to_volumes(
             points_3d,
             points_features,
@@ -466,17 +474,8 @@ def _add_points_features_to_volume_densities_features_python(
             mask=mask,
             min_weight=min_weight,
         )
-    elif mode == "nearest":  # nearest neighbor interp
-        volume_features, volume_densities = _round_points_to_volumes(
-            points_3d,
-            points_features,
-            volume_densities_flatten,
-            volume_features_flatten,
-            grid_sizes,
-            mask=mask,
-        )
     else:
-        raise ValueError('No such interpolation mode "%s"' % mode)
+        raise ValueError(f'No such interpolation mode "{mode}"')
 
     # reshape into the volume shape
     volume_features = volume_features.view(ba, feature_dim, *v_shape)
@@ -613,11 +612,11 @@ def _splat_points_to_volumes(
 
                 # valid - binary indicators of votes that fall into the volume
                 valid = (
-                    (0 <= X_)
+                    (X_ >= 0)
                     * (X_ < grid_sizes_xyz[:, None, 0:1])
-                    * (0 <= Y_)
+                    * (Y_ >= 0)
                     * (Y_ < grid_sizes_xyz[:, None, 1:2])
-                    * (0 <= Z_)
+                    * (Z_ >= 0)
                     * (Z_ < grid_sizes_xyz[:, None, 2:3])
                 ).long()
 
@@ -720,11 +719,11 @@ def _round_points_to_volumes(
     # pyre-fixme[9]: grid_sizes has type `LongTensor`; used as `Tensor`.
     grid_sizes = grid_sizes.type_as(XYZ)
     valid = (
-        (0 <= X)
+        (X >= 0)
         * (X < grid_sizes_xyz[:, None, 0:1])
-        * (0 <= Y)
+        * (Y >= 0)
         * (Y < grid_sizes_xyz[:, None, 1:2])
-        * (0 <= Z)
+        * (Z >= 0)
         * (Z < grid_sizes_xyz[:, None, 2:3])
     ).long()
     if mask is not None:

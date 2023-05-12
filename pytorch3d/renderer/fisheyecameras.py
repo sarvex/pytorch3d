@@ -117,12 +117,11 @@ class FishEyeCameras(CamerasBase):
             T=T,
             **kwargs,  # pyre-ignore
         )
-        if image_size is not None:
-            if (self.image_size < 1).any():  # pyre-ignore
-                raise ValueError("Image_size provided has invalid values")
-        else:
+        if image_size is None:
             self.image_size = None
 
+        elif (self.image_size < 1).any():  # pyre-ignore
+            raise ValueError("Image_size provided has invalid values")
         self.device = device
         self.focal = focal_length.to(self.device)
         self.principal_point = principal_point.to(self.device)
@@ -293,20 +292,18 @@ class FishEyeCameras(CamerasBase):
                 self.thin_prism_params[0],
                 points,
             )
-        else:
-            outputs = []
-            for i in range(N):
-                outputs.append(
-                    self._project_points_batch(
-                        self.focal[i],
-                        self.principal_point[i],
-                        self.radial_params[i],
-                        self.tangential_params[i],
-                        self.thin_prism_params[i],
-                        points,
-                    )
-                )
-            outputs = torch.stack(outputs, dim=0)
+        outputs = [
+            self._project_points_batch(
+                self.focal[i],
+                self.principal_point[i],
+                self.radial_params[i],
+                self.tangential_params[i],
+                self.thin_prism_params[i],
+                points,
+            )
+            for i in range(N)
+        ]
+        outputs = torch.stack(outputs, dim=0)
         return outputs.squeeze()
 
     def _unproject_points_batch(
@@ -387,20 +384,18 @@ class FishEyeCameras(CamerasBase):
                 self.thin_prism_params[0],
                 xy_depth[..., 0:2],
             )
-        else:
-            outputs = []
-            for i in range(N):
-                outputs.append(
-                    self._unproject_points_batch(
-                        self.focal[i],
-                        self.principal_point[i],
-                        self.radial_params[i],
-                        self.tangential_params[i],
-                        self.thin_prism_params[i],
-                        xy_depth[..., 0:2],
-                    )
-                )
-            outputs = torch.stack(outputs, dim=0)
+        outputs = [
+            self._unproject_points_batch(
+                self.focal[i],
+                self.principal_point[i],
+                self.radial_params[i],
+                self.tangential_params[i],
+                self.thin_prism_params[i],
+                xy_depth[..., 0:2],
+            )
+            for i in range(N)
+        ]
+        outputs = torch.stack(outputs, dim=0)
         return outputs.squeeze()
 
     def _compute_xr_yr_from_uv_distorted(
@@ -491,9 +486,9 @@ class FishEyeCameras(CamerasBase):
             # compute the theta polynomial and its derivative wrt theta
             t = theta_sq
             theta_pow = torch.stack([t, t**2, t**3, t**4, t**5, t**6], dim=-1)
-            th_radial = th_radial + torch.sum(theta_pow * radial_params, dim=-1)
+            th_radial += torch.sum(theta_pow * radial_params, dim=-1)
 
-            dthD_dth = dthD_dth + torch.sum(c * radial_params * theta_pow, dim=-1)
+            dthD_dth += torch.sum(c * radial_params * theta_pow, dim=-1)
             th_radial = th_radial * th
 
             # compute the correction

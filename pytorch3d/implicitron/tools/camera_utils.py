@@ -137,6 +137,4 @@ def volumetric_camera_overlaps(
         inter = proj_in_camera @ proj_in_camera.t()
 
     mass = torch.diag(inter)
-    iou = inter / (mass[:, None] + mass[None, :] - inter).clamp(0.1)
-
-    return iou
+    return inter / (mass[:, None] + mass[None, :] - inter).clamp(0.1)

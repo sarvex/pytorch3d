@@ -57,12 +57,11 @@ class FCBlock(nn.Module):
     ):
         super().__init__()
 
-        self.net = []
-        self.net.append(FCLayer(in_features=in_features, out_features=hidden_ch))
-
-        for i in range(num_hidden_layers):
-            self.net.append(FCLayer(in_features=hidden_ch, out_features=hidden_ch))
-
+        self.net = [FCLayer(in_features=in_features, out_features=hidden_ch)]
+        self.net.extend(
+            FCLayer(in_features=hidden_ch, out_features=hidden_ch)
+            for _ in range(num_hidden_layers)
+        )
         if outermost_linear:
             self.net.append(nn.Linear(in_features=hidden_ch, out_features=out_features))
         else:
@@ -96,7 +95,7 @@ class DownBlock3D(nn.Module):
                 kernel_size=4,
                 padding=0,
                 stride=2,
-                bias=False if norm is not None else True,
+                bias=norm is None,
             ),
         ]
 
@@ -123,8 +122,8 @@ class UpBlock3D(nn.Module):
                 kernel_size=4,
                 stride=2,
                 padding=1,
-                bias=False if norm is not None else True,
-            ),
+                bias=norm is None,
+            )
         ]
 
         if norm is not None:
@@ -134,10 +133,7 @@ class UpBlock3D(nn.Module):
         self.net = nn.Sequential(*self.net)
 
     def forward(self, x, skipped=None):
-        if skipped is not None:
-            input = torch.cat([skipped, x], dim=1)
-        else:
-            input = x
+        input = torch.cat([skipped, x], dim=1) if skipped is not None else x
         return self.net(input)
 
 
@@ -238,7 +234,7 @@ class UpBlock(nn.Module):
         """
         super().__init__()
 
-        net = list()
+        net = []
 
         if upsampling_mode == "transpose":
             net += [
@@ -248,27 +244,21 @@ class UpBlock(nn.Module):
                     kernel_size=4,
                     stride=2,
                     padding=1,
-                    bias=True if norm is None else False,
+                    bias=norm is None,
                 )
             ]
         elif upsampling_mode == "bilinear":
             net += [nn.UpsamplingBilinear2d(scale_factor=2)]
             net += [
                 Conv2dSame(
-                    in_channels,
-                    out_channels,
-                    kernel_size=3,
-                    bias=True if norm is None else False,
+                    in_channels, out_channels, kernel_size=3, bias=norm is None
                 )
             ]
         elif upsampling_mode == "nearest":
             net += [nn.UpsamplingNearest2d(scale_factor=2)]
             net += [
                 Conv2dSame(
-                    in_channels,
-                    out_channels,
-                    kernel_size=3,
-                    bias=True if norm is None else False,
+                    in_channels, out_channels, kernel_size=3, bias=norm is None
                 )
             ]
         elif upsampling_mode == "shuffle":
@@ -278,7 +268,7 @@ class UpBlock(nn.Module):
                     in_channels // 4,
                     out_channels,
                     kernel_size=3,
-                    bias=True if norm is None else False,
+                    bias=norm is None,
                 )
             ]
         else:
@@ -295,10 +285,7 @@ class UpBlock(nn.Module):
         if post_conv:
             net += [
                 Conv2dSame(
-                    out_channels,
-                    out_channels,
-                    kernel_size=3,
-                    bias=True if norm is None else False,
+                    out_channels, out_channels, kernel_size=3, bias=norm is None
                 )
             ]
 
@@ -313,10 +300,7 @@ class UpBlock(nn.Module):
         self.net = nn.Sequential(*net)
 
     def forward(self, x, skipped=None):
-        if skipped is not None:
-            input = torch.cat([skipped, x], dim=1)
-        else:
-            input = x
+        input = torch.cat([skipped, x], dim=1) if skipped is not None else x
         return self.net(input)
 
 
@@ -350,7 +334,7 @@ class DownBlock(nn.Module):
         if middle_channels is None:
             middle_channels = in_channels
 
-        net = list()
+        net = []
 
         if prep_conv:
             net += [
@@ -361,7 +345,7 @@ class DownBlock(nn.Module):
                     kernel_size=3,
                     padding=0,
                     stride=1,
-                    bias=True if norm is None else False,
+                    bias=norm is None,
                 ),
             ]
 
@@ -381,7 +365,7 @@ class DownBlock(nn.Module):
                 kernel_size=4,
                 padding=0,
                 stride=2,
-                bias=True if norm is None else False,
+                bias=norm is None,
             ),
         ]
 
@@ -586,9 +570,7 @@ class Unet(nn.Module):
 
         # Define the in block
         self.in_layer = [
-            Conv2dSame(
-                in_channels, nf0, kernel_size=3, bias=True if norm is None else False
-            )
+            Conv2dSame(in_channels, nf0, kernel_size=3, bias=norm is None)
         ]
         if norm is not None:
             self.in_layer += [norm(nf0, affine=True)]
@@ -685,8 +667,7 @@ class DownsamplingNet(nn.Module):
         if not len(per_layer_out_ch):
             self.downs = Identity()
         else:
-            self.downs = list()
-            self.downs.append(
+            self.downs = [
                 DownBlock(
                     in_channels,
                     per_layer_out_ch[0],
@@ -695,7 +676,7 @@ class DownsamplingNet(nn.Module):
                     middle_channels=per_layer_out_ch[0],
                     norm=norm,
                 )
-            )
+            ]
             for i in range(0, len(per_layer_out_ch) - 1):
                 if last_layer_one and (i == len(per_layer_out_ch) - 2):
                     norm = None
@@ -743,8 +724,7 @@ class UpsamplingNet(nn.Module):
         if not len(per_layer_out_ch):
             self.ups = Identity()
         else:
-            self.ups = list()
-            self.ups.append(
+            self.ups = [
                 UpBlock(
                     in_channels,
                     per_layer_out_ch[0],
@@ -753,18 +733,18 @@ class UpsamplingNet(nn.Module):
                     norm=None if first_layer_one else norm,
                     upsampling_mode=upsampling_mode,
                 )
-            )
-            for i in range(0, len(per_layer_out_ch) - 1):
-                self.ups.append(
-                    UpBlock(
-                        per_layer_out_ch[i],
-                        per_layer_out_ch[i + 1],
-                        use_dropout=use_dropout,
-                        dropout_prob=dropout_prob,
-                        norm=norm,
-                        upsampling_mode=upsampling_mode,
-                    )
+            ]
+            self.ups.extend(
+                UpBlock(
+                    per_layer_out_ch[i],
+                    per_layer_out_ch[i + 1],
+                    use_dropout=use_dropout,
+                    dropout_prob=dropout_prob,
+                    norm=norm,
+                    upsampling_mode=upsampling_mode,
                 )
+                for i in range(0, len(per_layer_out_ch) - 1)
+            )
             self.ups = nn.Sequential(*self.ups)
 
     def forward(self, input):

@@ -55,10 +55,10 @@ class ShapeNetCore(ShapeNetBase):  # pragma: no cover
                 (texture_resolution, texture_resolution, 3) map is created per face.
         """
         super().__init__()
-        self.shapenet_dir = data_dir
         self.load_textures = load_textures
         self.texture_resolution = texture_resolution
 
+        self.shapenet_dir = data_dir
         if version not in [1, 2]:
             raise ValueError("Version number must be either 1 or 2.")
         self.model_dir = "model.obj" if version == 1 else "models/model_normalized.obj"
@@ -80,18 +80,13 @@ class ShapeNetCore(ShapeNetBase):  # pragma: no cover
                     path.isdir(path.join(data_dir, synset))
                 ):
                     synset_set.add(synset)
-                elif (synset in self.synset_inv.keys()) and (
+                elif synset in self.synset_inv and (
                     (path.isdir(path.join(data_dir, self.synset_inv[synset])))
                 ):
                     synset_set.add(self.synset_inv[synset])
                 else:
-                    msg = (
-                        "Synset category %s either not part of ShapeNetCore dataset "
-                        "or cannot be found in %s."
-                    ) % (synset, data_dir)
+                    msg = f"Synset category {synset} either not part of ShapeNetCore dataset or cannot be found in {data_dir}."
                     warnings.warn(msg)
-        # If no category is given, load every category in the given directory.
-        # Ignore synset folders not included in the official mapping.
         else:
             synset_set = {
                 synset
@@ -105,7 +100,7 @@ class ShapeNetCore(ShapeNetBase):  # pragma: no cover
         synset_not_present = set(self.synset_dict.keys()).difference(synset_set)
         [self.synset_inv.pop(self.synset_dict[synset]) for synset in synset_not_present]
 
-        if len(synset_not_present) > 0:
+        if synset_not_present:
             msg = (
                 "The following categories are included in ShapeNetCore ver.%d's "
                 "official mapping but not found in the dataset location %s: %s"
@@ -120,10 +115,7 @@ class ShapeNetCore(ShapeNetBase):  # pragma: no cover
             self.synset_start_idxs[synset] = len(self.synset_ids)
             for model in os.listdir(path.join(data_dir, synset)):
                 if not path.exists(path.join(data_dir, synset, model, self.model_dir)):
-                    msg = (
-                        "Object file not found in the model directory %s "
-                        "under synset directory %s."
-                    ) % (model, synset)
+                    msg = f"Object file not found in the model directory {model} under synset directory {synset}."
                     warnings.warn(msg)
                     continue
                 self.synset_ids.append(synset)

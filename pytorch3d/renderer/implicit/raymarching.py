@@ -157,8 +157,7 @@ class AbsorptionOnlyRaymarcher(torch.nn.Module):
         rays_densities = rays_densities[..., 0]
         _check_density_bounds(rays_densities)
         total_transmission = torch.prod(1 - rays_densities, dim=-1, keepdim=True)
-        opacities = 1.0 - total_transmission
-        return opacities
+        return 1.0 - total_transmission
 
 
 def _shifted_cumprod(x, shift: int = 1):
@@ -168,10 +167,10 @@ def _shifted_cumprod(x, shift: int = 1):
     of the result.
     """
     x_cumprod = torch.cumprod(x, dim=-1)
-    x_cumprod_shift = torch.cat(
-        [torch.ones_like(x_cumprod[..., :shift]), x_cumprod[..., :-shift]], dim=-1
+    return torch.cat(
+        [torch.ones_like(x_cumprod[..., :shift]), x_cumprod[..., :-shift]],
+        dim=-1,
     )
-    return x_cumprod_shift
 
 
 def _check_density_bounds(
@@ -184,8 +183,10 @@ def _check_density_bounds(
     with torch.no_grad():
         if (rays_densities.max() > bounds[1]) or (rays_densities.min() < bounds[0]):
             warnings.warn(
-                "One or more elements of rays_densities are outside of valid"
-                + f"range {str(bounds)}"
+                (
+                    "One or more elements of rays_densities are outside of valid"
+                    + f"range {bounds}"
+                )
             )
 
 

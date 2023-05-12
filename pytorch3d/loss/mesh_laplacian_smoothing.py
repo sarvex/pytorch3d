@@ -107,7 +107,7 @@ def mesh_laplacian_smoothing(meshes, method: str = "uniform"):
     with torch.no_grad():
         if method == "uniform":
             L = meshes.laplacian_packed()
-        elif method in ["cot", "cotcurv"]:
+        elif method in {"cot", "cotcurv"}:
             L, inv_areas = cot_laplacian(verts_packed, faces_packed)
             if method == "cot":
                 norm_w = torch.sparse.sum(L, dim=1).to_dense().view(-1, 1)

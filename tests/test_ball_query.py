@@ -38,7 +38,7 @@ class TestBallQuery(TestCaseMixin, unittest.TestCase):
         if lengths2 is None:
             lengths2 = torch.full((N,), P2, dtype=torch.int64, device=p1.device)
 
-        radius2 = radius * radius
+        radius2 = radius**2
         dists = torch.zeros((N, P1, K), dtype=torch.float32, device=p1.device)
         idx = torch.full((N, P1, K), fill_value=-1, dtype=torch.int64, device=p1.device)
 
@@ -176,8 +176,8 @@ class TestBallQuery(TestCaseMixin, unittest.TestCase):
         # Zero is a valid index but can only be present once (i.e. no zero padding)
         naive_out_zeros = (naive_out.idx == 0).sum(dim=-1).max()
         cuda_out_zeros = (cuda_out.idx == 0).sum(dim=-1).max()
-        self.assertTrue(naive_out_zeros == 0 or naive_out_zeros == 1)
-        self.assertTrue(cuda_out_zeros == 0 or cuda_out_zeros == 1)
+        self.assertTrue(naive_out_zeros in [0, 1])
+        self.assertTrue(cuda_out_zeros in [0, 1])
 
         # All points should now have zero sample neighbors as radius is small
         radius = 0.5

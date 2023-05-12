@@ -457,10 +457,7 @@ def _get_reduction_function_output_dim(
     reduction_function: ReductionFunction,
     feat_dim: int,
 ) -> int:
-    if reduction_function == ReductionFunction.STD_AVG:
-        return 1
-    else:
-        return feat_dim
+    return 1 if reduction_function == ReductionFunction.STD_AVG else feat_dim
 
 
 def _get_view_sampling_mask(
@@ -504,7 +501,7 @@ def _get_angular_reduction_weights(
     weight_by_ray_angle_gamma: float,
 ):
     aggr_weights = masks_sampled.clone()[..., 0]
-    assert not any(v is None for v in [camera, pts])
+    assert all(v is not None for v in [camera, pts])
     angle_weight = _get_ray_angle_weights(
         camera,
         pts,
@@ -585,8 +582,7 @@ def _get_ray_angle_weights(
         camera, pts
     )  # pts_batch x n_cameras x ... x 3
     angle_weight_01 = ray_dir_dot_prods * 0.5 + 0.5  # [-1, 1] to [0, 1]
-    angle_weight = (angle_weight_01 + min_ray_angle_weight) ** weight_by_ray_angle_gamma
-    return angle_weight
+    return (angle_weight_01 + min_ray_angle_weight) ** weight_by_ray_angle_gamma
 
 
 def _avgmaxstd_reduction_function(
@@ -650,8 +646,7 @@ def _avg_reduction_function(
     w: torch.Tensor,
     dim: int = 1,
 ):
-    mu = wmean(x, w, dim=dim, eps=1e-2)
-    return mu
+    return wmean(x, w, dim=dim, eps=1e-2)
 
 
 def _std_reduction_function(
@@ -662,10 +657,7 @@ def _std_reduction_function(
 ):
     if mu is None:
         mu = _avg_reduction_function(x, w, dim=dim)
-    # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and `int`.
-    std = wmean((x - mu) ** 2, w, dim=dim, eps=1e-2).clamp(1e-4).sqrt()
-    # FIXME: somehow this is extremely heavy in mem?
-    return std
+    return wmean((x - mu) ** 2, w, dim=dim, eps=1e-2).clamp(1e-4).sqrt()
 
 
 def _std_avg_reduction_function(
@@ -677,8 +669,7 @@ def _std_avg_reduction_function(
 ):
     if std is None:
         std = _std_reduction_function(x, w, dim=dim, mu=mu)
-    stdmean = std.mean(dim=-1, keepdim=True)
-    return stdmean
+    return std.mean(dim=-1, keepdim=True)
 
 
 def _max_reduction_function(
@@ -688,5 +679,4 @@ def _max_reduction_function(
     big_M_factor: float = 10.0,
 ):
     big_M = x.max(dim=dim, keepdim=True).values.abs() * big_M_factor
-    max_ = (x * w - ((1 - w) * big_M)).max(dim=dim, keepdim=True).values
-    return max_
+    return (x * w - ((1 - w) * big_M)).max(dim=dim, keepdim=True).values

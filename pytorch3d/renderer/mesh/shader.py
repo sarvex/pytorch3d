@@ -103,8 +103,7 @@ class HardPhongShader(ShaderBase):
             cameras=cameras,
             materials=materials,
         )
-        images = hard_rgb_blend(colors, fragments, blend_params)
-        return images
+        return hard_rgb_blend(colors, fragments, blend_params)
 
 
 class SoftPhongShader(ShaderBase):
@@ -137,10 +136,9 @@ class SoftPhongShader(ShaderBase):
         )
         znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
         zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
-        images = softmax_rgb_blend(
+        return softmax_rgb_blend(
             colors, fragments, blend_params, znear=znear, zfar=zfar
         )
-        return images
 
 
 class HardGouraudShader(ShaderBase):
@@ -176,8 +174,7 @@ class HardGouraudShader(ShaderBase):
             cameras=cameras,
             materials=materials,
         )
-        images = hard_rgb_blend(pixel_colors, fragments, blend_params)
-        return images
+        return hard_rgb_blend(pixel_colors, fragments, blend_params)
 
 
 class SoftGouraudShader(ShaderBase):
@@ -208,10 +205,9 @@ class SoftGouraudShader(ShaderBase):
         )
         znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
         zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
-        images = softmax_rgb_blend(
+        return softmax_rgb_blend(
             pixel_colors, fragments, self.blend_params, znear=znear, zfar=zfar
         )
-        return images
 
 
 def TexturedSoftPhongShader(
@@ -267,8 +263,7 @@ class HardFlatShader(ShaderBase):
             cameras=cameras,
             materials=materials,
         )
-        images = hard_rgb_blend(colors, fragments, blend_params)
-        return images
+        return hard_rgb_blend(colors, fragments, blend_params)
 
 
 class SoftSilhouetteShader(nn.Module):
@@ -299,8 +294,7 @@ class SoftSilhouetteShader(nn.Module):
         """
         colors = torch.ones_like(fragments.bary_coords)
         blend_params = kwargs.get("blend_params", self.blend_params)
-        images = sigmoid_alpha_blend(colors, fragments, blend_params)
-        return images
+        return sigmoid_alpha_blend(colors, fragments, blend_params)
 
 
 class SplatterPhongShader(ShaderBase):
@@ -352,15 +346,13 @@ class SplatterPhongShader(ShaderBase):
         blend_params = kwargs.get("blend_params", self.blend_params)
         self.check_blend_params(blend_params)
 
-        images = self.splatter_blender(
+        return self.splatter_blender(
             colors,
             pixel_coords_cameras,
             cameras,
             fragments.pix_to_face < 0,
             kwargs.get("blend_params", self.blend_params),
         )
-
-        return images
 
     def check_blend_params(self, blend_params):
         if blend_params.sigma != 0.5:

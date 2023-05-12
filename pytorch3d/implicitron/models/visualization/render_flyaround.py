@@ -301,25 +301,23 @@ def _show_predictions(
     """Given a list of predictions visualize them into a single image using visdom."""
     assert isinstance(preds, list)
 
-    pred_all = []
     # Randomly choose a subset of the rendered images, sort by ordr in the sequence
     n_samples = min(n_samples, len(preds))
     pred_idx = sorted(random.sample(list(range(len(preds))), n_samples))
-    for predi in pred_idx:
-        # Make the concatentation for the same camera vertically
-        pred_all.append(
-            torch.cat(
-                [
-                    torch.nn.functional.interpolate(
-                        preds[predi][k].cpu(),
-                        scale_factor=one_image_width / preds[predi][k].shape[3],
-                        mode="bilinear",
-                    ).clamp(0.0, 1.0)
-                    for k in predicted_keys
-                ],
-                dim=2,
-            )
+    pred_all = [
+        torch.cat(
+            [
+                torch.nn.functional.interpolate(
+                    preds[predi][k].cpu(),
+                    scale_factor=one_image_width / preds[predi][k].shape[3],
+                    mode="bilinear",
+                ).clamp(0.0, 1.0)
+                for k in predicted_keys
+            ],
+            dim=2,
         )
+        for predi in pred_idx
+    ]
     # Concatenate the images horizontally
     pred_all_cat = torch.cat(pred_all, dim=3)[0]
     viz.image(
@@ -386,6 +384,6 @@ def _generate_prediction_videos(
             viz.video(
                 videofile=vws[k].out_path,
                 env=viz_env,
-                win=k,  # we reuse the same window otherwise visdom dies
-                opts={"title": sequence_name + " " + k},
+                win=k,
+                opts={"title": f"{sequence_name} {k}"},
             )

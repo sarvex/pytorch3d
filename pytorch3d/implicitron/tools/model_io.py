@@ -20,22 +20,17 @@ logger = logging.getLogger(__name__)
 def load_stats(flstats):
     from pytorch3d.implicitron.tools.stats import Stats
 
-    if not os.path.isfile(flstats):
-        return None
-
-    return Stats.load(flstats)
+    return None if not os.path.isfile(flstats) else Stats.load(flstats)
 
 
 def get_model_path(fl) -> str:
     fl = os.path.splitext(fl)[0]
-    flmodel = "%s.pth" % fl
-    return flmodel
+    return f"{fl}.pth"
 
 
 def get_optimizer_path(fl) -> str:
     fl = os.path.splitext(fl)[0]
-    flopt = "%s_opt.pth" % fl
-    return flopt
+    return f"{fl}_opt.pth"
 
 
 def get_stats_path(fl, eval_results: bool = False) -> str:
@@ -46,7 +41,7 @@ def get_stats_path(fl, eval_results: bool = False) -> str:
             if os.path.isfile(flstats):
                 break
     else:
-        flstats = "%s_stats.jgz" % fl
+        flstats = f"{fl}_stats.jgz"
     # pyre-fixme[61]: `flstats` is undefined, or not always defined.
     return flstats
 
@@ -85,14 +80,14 @@ def safe_save_model(model, stats, fl, optimizer=None, cfg=None) -> None:
 def save_model(model, stats, fl, optimizer=None, cfg=None):
     flstats = get_stats_path(fl)
     flmodel = get_model_path(fl)
-    logger.info("saving model to %s" % flmodel)
+    logger.info(f"saving model to {flmodel}")
     torch.save(model.state_dict(), flmodel)
     flopt = None
     if optimizer is not None:
         flopt = get_optimizer_path(fl)
-        logger.info("saving optimizer to %s" % flopt)
+        logger.info(f"saving optimizer to {flopt}")
         torch.save(optimizer.state_dict(), flopt)
-    logger.info("saving model stats to %s" % flstats)
+    logger.info(f"saving model stats to {flstats}")
     stats.save(flstats)
 
     return flstats, flmodel, flopt
@@ -119,18 +114,13 @@ def parse_epoch_from_model_path(model_path) -> int:
 
 
 def get_checkpoint(exp_dir, epoch):
-    fl = os.path.join(exp_dir, "model_epoch_%08d.pth" % epoch)
-    return fl
+    return os.path.join(exp_dir, "model_epoch_%08d.pth" % epoch)
 
 
 def find_last_checkpoint(
     exp_dir, any_path: bool = False, all_checkpoints: bool = False
 ):
-    if any_path:
-        exts = [".pth", "_stats.jgz", "_opt.pth"]
-    else:
-        exts = [".pth"]
-
+    exts = [".pth", "_stats.jgz", "_opt.pth"] if any_path else [".pth"]
     for ext in exts:
         fls = sorted(
             glob.glob(
@@ -141,16 +131,13 @@ def find_last_checkpoint(
             break
     # pyre-fixme[61]: `fls` is undefined, or not always defined.
     if len(fls) == 0:
-        fl = None
+        return None
     else:
-        if all_checkpoints:
-            # pyre-fixme[61]: `fls` is undefined, or not always defined.
-            fl = [f[0 : -len(ext)] + ".pth" for f in fls]
-        else:
-            # pyre-fixme[61]: `ext` is undefined, or not always defined.
-            fl = fls[-1][0 : -len(ext)] + ".pth"
-
-    return fl
+        return (
+            [f"{f[:-len(ext)]}.pth" for f in fls]
+            if all_checkpoints
+            else f"{fls[-1][:-len(ext)]}.pth"
+        )
 
 
 def purge_epoch(exp_dir, epoch) -> None:
@@ -162,5 +149,5 @@ def purge_epoch(exp_dir, epoch) -> None:
         get_stats_path(model_path),
     ]:
         if os.path.isfile(file_path):
-            logger.info("deleting %s" % file_path)
+            logger.info(f"deleting {file_path}")
             os.remove(file_path)

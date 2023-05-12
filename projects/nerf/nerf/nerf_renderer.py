@@ -362,8 +362,7 @@ class RadianceFieldRenderer(torch.nn.Module):
                     ("mse", "psnr"), (calc_mse, calc_psnr)
                 ):
                     metrics[f"{metric_name}_{render_pass}"] = metric_fun(
-                        out["rgb_" + render_pass][..., :3],
-                        out["rgb_gt"][..., :3],
+                        out[f"rgb_{render_pass}"][..., :3], out["rgb_gt"][..., :3]
                     )
 
         return out, metrics
@@ -421,12 +420,7 @@ def visualize_nerf_outputs(
         for ci, o in enumerate(output_cache)
     }
     plotly_plot = plot_scene(
-        {
-            "training_scene": {
-                **camera_trace,
-                **ray_pts_trace,
-            },
-        },
+        {"training_scene": camera_trace | ray_pts_trace},
         pointcloud_max_points=5000,
         pointcloud_marker_size=1,
         camera_scale=0.3,

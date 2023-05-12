@@ -65,7 +65,7 @@ class SingleSceneDataset(DatasetBase, Configurable):
             None if self.fg_probabilities is None else self.fg_probabilities[index]
         )
 
-        frame_data = FrameData(
+        return FrameData(
             frame_number=index,
             sequence_name=_SINGLE_SEQUENCE_NAME,
             sequence_category=self.object_name,
@@ -76,7 +76,6 @@ class SingleSceneDataset(DatasetBase, Configurable):
             fg_probability=fg_probability,
             frame_type=frame_type,
         )
-        return frame_data
 
     def get_eval_batches(self) -> Optional[List[List[int]]]:
         return self.eval_batches

@@ -75,8 +75,7 @@ class SceneBatchSampler(Sampler[List[int]]):
 
     def __iter__(self) -> Iterator[List[int]]:
         for batch_idx in range(len(self)):
-            batch = self._sample_batch(batch_idx)
-            yield batch
+            yield self._sample_batch(batch_idx)
 
     def _sample_batch(self, batch_idx) -> List[int]:
         n_per_seq = np.random.choice(self.images_per_seq_options)
@@ -150,12 +149,7 @@ class SceneBatchSampler(Sampler[List[int]]):
         else:
             segments = [list(self.dataset.sequence_indices_in_order(seq))]
 
-        # build an index of segment for random selection of a pivot frame
-        segment_index = [
-            (segment, i) for segment in segments for i in range(len(segment))
-        ]
-
-        return segment_index
+        return [(segment, i) for segment in segments for i in range(len(segment))]
 
     def _split_to_segments(
         self, sequence_timestamps: Iterable[Tuple[float, int, int]]

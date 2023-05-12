@@ -36,9 +36,10 @@ class DatasetMap:
         """
         Get one of the datasets by key (name of data split)
         """
-        if split not in ["train", "val", "test"]:
+        if split in {"train", "val", "test"}:
+            return getattr(self, split)
+        else:
             raise ValueError(f"{split} was not a valid split name (train/val/test)")
-        return getattr(self, split)
 
     def iter_datasets(self) -> Iterator[DatasetBase]:
         """
@@ -71,7 +72,7 @@ class DatasetMap:
                 *[getattr(dmap, set_) for dmap in other_dataset_maps],
             ]
             dataset_list = [d for d in dataset_list if d is not None]
-            if len(dataset_list) == 0:
+            if not dataset_list:
                 setattr(self, set_, None)
                 continue
             d0 = dataset_list[0]

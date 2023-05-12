@@ -166,16 +166,14 @@ def join_cameras_as_batch(cameras_list: Sequence[CamerasBase]) -> CamerasBase:
     if not all(isinstance(c, CamerasBase) for c in cameras_list):
         raise ValueError("cameras in cameras_list must inherit from CamerasBase")
 
-    if not all(type(c) is type(c0) for c in cameras_list[1:]):
+    if any(type(c) is not type(c0) for c in cameras_list[1:]):
         raise ValueError("All cameras must be of the same type")
 
-    if not all(c.device == c0.device for c in cameras_list[1:]):
+    if any(c.device != c0.device for c in cameras_list[1:]):
         raise ValueError("All cameras in the batch must be on the same device")
 
     # Concat the fields to make a batched tensor
-    kwargs = {}
-    kwargs["device"] = c0.device
-
+    kwargs = {"device": c0.device}
     for field in fields:
         field_not_none = [(getattr(c, field) is not None) for c in cameras_list]
         if not any(field_not_none):
@@ -187,7 +185,7 @@ def join_cameras_as_batch(cameras_list: Sequence[CamerasBase]) -> CamerasBase:
 
         if field in shared_fields:
             # Only needs to be set once
-            if not all(a == attrs_list[0] for a in attrs_list):
+            if any(a != attrs_list[0] for a in attrs_list):
                 raise ValueError(f"Attribute {field} is not constant across inputs")
 
             # e.g. "in_ndc" is set as attribute "_in_ndc" on the class

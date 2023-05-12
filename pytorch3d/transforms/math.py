@@ -82,4 +82,4 @@ def _dacos_dx(x: float) -> float:
     """
     Calculates the derivative of `arccos(x)` w.r.t. `x`.
     """
-    return (-1.0) / math.sqrt(1.0 - x * x)
+    return -1.0 / math.sqrt(1.0 - x**2)

@@ -48,7 +48,7 @@ def get_implicitron_sequence_pointcloud(
             if dataset.frame_annots[ei]["frame_annotation"].sequence_name
             == sequence_name
         ]
-        if len(sequence_entries) == 0:
+        if not sequence_entries:
             raise ValueError(
                 f'There are no dataset entries for sequence name "{sequence_name}".'
             )

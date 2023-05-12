@@ -136,11 +136,7 @@ class SubdivideMeshes(nn.Module):
                 dim=1,
             )
             f3 = faces_packed_to_edges_packed
-            subdivided_faces_packed = torch.cat(
-                [f0, f1, f2, f3], dim=0
-            )  # (4*sum(F_n), 3)
-
-            return subdivided_faces_packed
+            return torch.cat([f0, f1, f2, f3], dim=0)
 
     def forward(self, meshes, feats=None):
         """
@@ -220,10 +216,7 @@ class SubdivideMeshes(nn.Module):
 
         new_meshes = Meshes(verts=new_verts, faces=new_faces)
 
-        if feats is None:
-            return new_meshes
-        else:
-            return new_meshes, new_feats
+        return new_meshes if feats is None else (new_meshes, new_feats)
 
     def subdivide_heterogenerous(self, meshes, feats=None):
         """
@@ -326,9 +319,8 @@ class SubdivideMeshes(nn.Module):
 
         if feats is None:
             return new_meshes
-        else:
-            new_feats = torch.cat(feats_list, dim=0)
-            return new_meshes, new_feats
+        new_feats = torch.cat(feats_list, dim=0)
+        return new_meshes, new_feats
 
 
 def _create_verts_index(verts_per_mesh, edges_per_mesh, device=None):
@@ -381,25 +373,7 @@ def _create_verts_index(verts_per_mesh, edges_per_mesh, device=None):
     idx_diffs[v_to_e_idx] += v_to_e_offset
     idx_diffs[e_to_v_idx] += e_to_v_offset
 
-    # e.g.
-    # [
-    #  1, 1, 1, 1, 12, 1, 1, 1, 1,
-    #  -15, 1, 1, 1, 1, 12, 1, 1, 1, 1, 1, 1,
-    #  -17, 1, 1, 1, 1, 1, 13, 1, 1, 1, 1, 1, 1, 1
-    # ]
-
-    verts_idx = idx_diffs.cumsum(dim=0) - 1
-
-    # e.g.
-    # [
-    #  0, 1, 2, 3, 15, 16, 17, 18, 19,                            --> mesh 0
-    #  4, 5, 6, 7, 8, 20, 21, 22, 23, 24, 25, 26,                 --> mesh 1
-    #  9, 10, 11, 12, 13, 14, 27, 28, 29, 30, 31, 32, 33, 34, 35  --> mesh 2
-    # ]
-    # where for mesh 0, [0, 1, 2, 3] are the indices of the existing verts, and
-    # [15, 16, 17, 18, 19] are the indices of the new verts after subdivision.
-
-    return verts_idx
+    return idx_diffs.cumsum(dim=0) - 1
 
 
 def _create_faces_index(faces_per_mesh: torch.Tensor, device=None):
@@ -449,22 +423,4 @@ def _create_faces_index(faces_per_mesh: torch.Tensor, device=None):
     idx_diffs[switch3_idx] += switch123_offset
     idx_diffs[switch4_idx] -= 3 * F
 
-    # e.g
-    # [
-    #  1, 1, 9, 1, 9, 1, 9, 1,                                       -> mesh 0
-    #  -29, 1, 1, 1, 1, 6, 1, 1, 1, 1, 6, 1, 1, 1, 1, 6, 1, 1, 1, 1, -> mesh 1
-    #  -29, 1, 1, 8, 1, 1, 8, 1, 1, 8, 1, 1                          -> mesh 2
-    # ]
-
-    faces_idx = idx_diffs.cumsum(dim=0) - 1
-
-    # e.g.
-    # [
-    #  0, 1, 10, 11, 20, 21, 30, 31,
-    #  2, 3, 4, 5, 6, 12, 13, 14, 15, 16, 22, 23, 24, 25, 26, 32, 33, 34, 35, 36,
-    #  7, 8, 9, 17, 18, 19, 27, 28, 29, 37, 38, 39
-    # ]
-    # where for mesh 0, [0, 1] are the indices of the existing faces, and
-    # [10, 11, 20, 21, 30, 31] are the indices of the new faces after subdivision.
-
-    return faces_idx
+    return idx_diffs.cumsum(dim=0) - 1

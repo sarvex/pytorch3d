@@ -74,11 +74,7 @@ def make_mesh_texture_atlas(
         faces_material_ind = torch.from_numpy(face_material_names == material_name).to(
             faces_uvs.device
         )
-        if faces_material_ind.sum() > 0:
-            # For these faces, update the base color to the
-            # diffuse material color.
-            if "diffuse_color" not in props:
-                continue
+        if faces_material_ind.sum() > 0 and "diffuse_color" in props:
             atlas[faces_material_ind, ...] = props["diffuse_color"][None, :]
 
     # If there are vertex texture coordinates, create an (F, 3, 2)
@@ -297,11 +293,7 @@ def make_material_atlas(
     # (F, 1, 1, 3, 2) * (R, R, 3, 1) -> (F, R, R, 3, 2) -> (F, R, R, 2)
     uv_pos = (faces_verts_uvs[:, None, None] * bary[..., None]).sum(-2)
 
-    # bi-linearly interpolate the textures from the images
-    # using the uv coordinates given by uv_pos.
-    textures = _bilinear_interpolation_grid_sample(image, uv_pos)
-
-    return textures
+    return _bilinear_interpolation_grid_sample(image, uv_pos)
 
 
 def _bilinear_interpolation_vectorized(
@@ -347,19 +339,12 @@ def _bilinear_interpolation_vectorized(
     weight_x0, weight_y0 = weight_0.unbind(-1)
     weight_x1, weight_y1 = weight_1.unbind(-1)
 
-    # Bi-linear interpolation
-    # griditions = [[y,     x], [(y+1),     x]
-    #              [y, (x+1)], [(y+1), (x+1)]]
-    # weights   = [[wx0*wy0, wx0*wy1],
-    #              [wx1*wy0, wx1*wy1]]
-    out = (
+    return (
         image[y0, x0] * (weight_x0 * weight_y0)[..., None]
         + image[y1, x0] * (weight_x0 * weight_y1)[..., None]
         + image[y0, x1] * (weight_x1 * weight_y0)[..., None]
         + image[y1, x1] * (weight_x1 * weight_y1)[..., None]
     )
-
-    return out
 
 
 def _bilinear_interpolation_grid_sample(

@@ -44,15 +44,13 @@ def _define_egl_extension(name: str, type):
     addr = egl.eglGetProcAddress(name)
     if addr is None:
         raise RuntimeError(f"Cannot find EGL extension {name}.")
-    else:
-        proto = ctypes.CFUNCTYPE(type)
-        func = proto(addr)
-        setattr(egl, name, func)
+    proto = ctypes.CFUNCTYPE(type)
+    func = proto(addr)
+    setattr(egl, name, func)
     return proto
 
 
-_protos = []
-_protos.append(_define_egl_extension("eglGetPlatformDisplayEXT", egl.EGLDisplay))
+_protos = [_define_egl_extension("eglGetPlatformDisplayEXT", egl.EGLDisplay)]
 _protos.append(_define_egl_extension("eglQueryDevicesEXT", egl.EGLBoolean))
 _protos.append(_define_egl_extension("eglQueryDeviceAttribEXT", egl.EGLBoolean))
 _protos.append(_define_egl_extension("eglQueryDisplayAttribEXT", egl.EGLBoolean))
@@ -416,8 +414,7 @@ def _init_cuda_context(device_id: int = 0):
     """
     # pyre-ignore Undefined attribute [16]
     device = cuda.Device(device_id)
-    cuda_context = device.make_context()
-    return cuda_context
+    return device.make_context()
 
 
 def _torch_to_opengl(torch_tensor, cuda_context, cuda_buffer):

@@ -63,9 +63,9 @@ def list_to_padded(
         pad_dims = [
             max(y.shape[dim] for y in x if len(y) > 0) for dim in range(x[0].ndim)
         ]
+    elif any(len(pad_size) != y.ndim for y in x):
+        raise ValueError("Pad size must contain target size for all dimensions.")
     else:
-        if any(len(pad_size) != y.ndim for y in x):
-            raise ValueError("Pad size must contain target size for all dimensions.")
         pad_dims = pad_size
 
     N = len(x)

@@ -84,21 +84,23 @@ class _Visualizer:
                 dim=3,
             ),
             env=self.visdom_env,
-            win="depth_abs" + name_postfix,
+            win=f"depth_abs{name_postfix}",
             opts={"title": f"depth_abs_{name_postfix}_{depth_loss:1.2f}"},
         )
         viz.images(
             loss_mask_now,
             env=self.visdom_env,
-            win="depth_abs" + name_postfix + "_mask",
+            win=f"depth_abs{name_postfix}_mask",
             opts={"title": f"depth_abs_{name_postfix}_{depth_loss:1.2f}_mask"},
         )
         if self.depth_mask is not None:
             viz.images(
                 self.depth_mask,
                 env=self.visdom_env,
-                win="depth_abs" + name_postfix + "_maskd",
-                opts={"title": f"depth_abs_{name_postfix}_{depth_loss:1.2f}_maskd"},
+                win=f"depth_abs{name_postfix}_maskd",
+                opts={
+                    "title": f"depth_abs_{name_postfix}_{depth_loss:1.2f}_maskd"
+                },
             )
 
         # show the 3D plot
@@ -288,13 +290,9 @@ def eval_batch(
             visdom_env=visualize_visdom_env,
         )
 
-    results: Dict[str, Any] = {}
-
-    results["iou"] = iou(
-        cloned_render["mask_render"],
-        mask_fg,
-        mask=mask_crop,
-    )
+    results: Dict[str, Any] = {
+        "iou": iou(cloned_render["mask_render"], mask_fg, mask=mask_crop)
+    }
 
     for loss_fg_mask, name_postfix in zip((mask_crop, mask_fg), ("_masked", "_fg")):
 
@@ -326,7 +324,7 @@ def eval_batch(
                 mask=loss_mask_now,
                 crop=5,
             )
-            results["depth_abs" + name_postfix] = abs_.mean()
+            results[f"depth_abs{name_postfix}"] = abs_.mean()
 
             if visualize:
                 visualizer.show_depth(abs_.mean().item(), name_postfix, loss_mask_now)
@@ -352,7 +350,7 @@ def eval_batch(
                     cloned_render["image_render"],
                 )
             ]
-            results["lpips" + gt_image_type] = lpips_model.forward(im1, im2).item()
+            results[f"lpips{gt_image_type}"] = lpips_model.forward(im1, im2).item()
 
     # convert all metrics to floats
     results = {k: float(v) for k, v in results.items()}
@@ -381,7 +379,7 @@ def average_per_batch_results(
     result_keys.remove("meta")
     if idx is not None:
         results_per_batch = [results_per_batch[i] for i in idx]
-    if len(results_per_batch) == 0:
+    if not results_per_batch:
         return {k: float("NaN") for k in result_keys}
     return {
         k: float(np.array([r[k] for r in results_per_batch]).mean())
@@ -431,9 +429,7 @@ def summarize_nvs_eval_results(
     """
     n_batches = len(per_batch_eval_results)
     eval_sets: List[Optional[str]] = []
-    eval_sets = [None]
-    if is_multisequence:
-        eval_sets = ["train", "test"]
+    eval_sets = ["train", "test"] if is_multisequence else [None]
     batch_sizes = torch.tensor(
         [r["meta"]["batch_size"] for r in per_batch_eval_results]
     ).long()
@@ -487,8 +483,7 @@ def summarize_nvs_eval_results(
 
 def _get_flat_nvs_metric_key(result, metric_name) -> str:
     metric_key_postfix = f"|subset={result['subset']}|{result['subsubset']}"
-    metric_key = f"{metric_name}{metric_key_postfix}"
-    return metric_key
+    return f"{metric_name}{metric_key_postfix}"
 
 
 def flatten_nvs_results(results) -> Dict[str, Any]:
@@ -532,12 +527,11 @@ def pretty_print_nvs_metrics(results) -> None:
             tab[metric] = []
             header = ["metric"]
             for subsubset in subsubsets:
-                metric_vals = [
+                if metric_vals := [
                     r["metrics"][metric]
                     for r in results
                     if r["subsubset"] == subsubset and r["subset"] == subset
-                ]
-                if len(metric_vals) > 0:
+                ]:
                     tab[metric].extend(metric_vals)
                     header.extend(subsubsets)
 
@@ -577,13 +571,19 @@ def aggregate_nvs_results(task_results):
                 for r in task_results_cat
                 if r["subsubset"] == subsubset and r["subset"] == subset
             ]
-            avg_metrics = {}
-            for metric in metrics:
-                avg_metrics[metric] = float(
+            avg_metrics = {
+                metric: float(
                     np.nanmean(
-                        np.array([metric_list[metric] for metric_list in metrics_lists])
+                        np.array(
+                            [
+                                metric_list[metric]
+                                for metric_list in metrics_lists
+                            ]
+                        )
                     )
                 )
+                for metric in metrics
+            }
             average_results.append(
                 {
                     "subset": subset,

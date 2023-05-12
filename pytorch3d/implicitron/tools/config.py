@@ -270,10 +270,10 @@ class _Registry:
         """
         if base_class is None:
             base_class = self._base_class_from_class(some_class)
-            if base_class is None:
-                raise ValueError(
-                    f"Cannot register {some_class}. Cannot tell what it is."
-                )
+        if base_class is None:
+            raise ValueError(
+                f"Cannot register {some_class}. Cannot tell what it is."
+            )
         self._mapping[base_class][name] = some_class
 
     def get(self, base_class_wanted: Type[_X], name: str) -> Type[_X]:
@@ -356,10 +356,15 @@ class _Registry:
         """
         Find the parent class of some_class which inherits ReplaceableBase, or None
         """
-        for base in some_class.mro()[-3::-1]:
-            if base is not ReplaceableBase and issubclass(base, ReplaceableBase):
-                return base
-        return None
+        return next(
+            (
+                base
+                for base in some_class.mro()[-3::-1]
+                if base is not ReplaceableBase
+                and issubclass(base, ReplaceableBase)
+            ),
+            None,
+        )
 
 
 # Global instance of the registry
@@ -573,8 +578,7 @@ def _dataclass_name_for_function(C: Any) -> str:
     Returns the name of the dataclass which enable_get_default_args(C)
     creates.
     """
-    name = f"_{C.__name__}_default_args_"
-    return name
+    return f"_{C.__name__}_default_args_"
 
 
 def _field_annotations_for_default_args(
@@ -686,10 +690,7 @@ def _resolve_optional(type_: Any) -> Tuple[bool, Any]:
         args = get_args(type_)
         if len(args) == 2 and args[1] == type(None):  # noqa E721
             return True, args[0]
-    if type_ is Any:
-        return True, Any
-
-    return False, type_
+    return (True, Any) if type_ is Any else (False, type_)
 
 
 def _is_actually_dataclass(some_class) -> bool:
@@ -890,9 +891,9 @@ def expand_args_fields(
         if "_creation_functions" in base.__dict__:
             creation_functions.extend(base._creation_functions)
         if "_known_implementations" in base.__dict__:
-            known_implementations.update(base._known_implementations)
+            known_implementations |= base._known_implementations
         if "_processed_members" in base.__dict__:
-            processed_members.update(base._processed_members)
+            processed_members |= base._processed_members
 
     to_process: List[Tuple[str, Type, _ProcessType]] = []
     if "__annotations__" in some_class.__dict__:
@@ -1104,10 +1105,7 @@ def _process_member(
                     f"Cannot generate {args_name} because it is already present."
                 )
             some_class.__annotations__[args_name] = dict
-            if hook is not None:
-                hook_closed = partial(hook, derived_type)
-            else:
-                hook_closed = None
+            hook_closed = partial(hook, derived_type) if hook is not None else None
             setattr(
                 some_class,
                 args_name,
@@ -1128,10 +1126,7 @@ def _process_member(
             raise ValueError(f"Cannot process {type_} inside {some_class}")
 
         some_class.__annotations__[args_name] = dict
-        if hook is not None:
-            hook_closed = partial(hook, type_)
-        else:
-            hook_closed = None
+        hook_closed = partial(hook, type_) if hook is not None else None
         setattr(
             some_class,
             args_name,
@@ -1189,10 +1184,10 @@ def remove_unused_components(dict_: DictConfig) -> None:
         if selected_type is None:
             expect = ""
         else:
-            expect = replaceable + "_" + selected_type + ARGS_SUFFIX
+            expect = f"{replaceable}_{selected_type}{ARGS_SUFFIX}"
         with open_dict(dict_):
             for key in args_keys:
-                if key.startswith(replaceable + "_") and key != expect:
+                if key.startswith(f"{replaceable}_") and key != expect:
                     del dict_[key]
 
     suffix_length = len(ENABLED_SUFFIX)

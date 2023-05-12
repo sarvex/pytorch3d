@@ -45,7 +45,7 @@ class GraphConv(nn.Module):
             self.w0.weight.data.zero_()
             self.w1.weight.data.zero_()
         else:
-            raise ValueError('Invalid GraphConv initialization "%s"' % init)
+            raise ValueError(f'Invalid GraphConv initialization "{init}"')
 
     def forward(self, verts, edges):
         """
@@ -78,9 +78,7 @@ class GraphConv(nn.Module):
                 verts_w1, edges, self.directed
             )  # (V, output_dim)
 
-        # Add neighbor features to each vertex's features.
-        out = verts_w0 + neighbor_sums
-        return out
+        return verts_w0 + neighbor_sums
 
     def __repr__(self):
         Din, Dout, directed = self.input_dim, self.output_dim, self.directed
@@ -106,11 +104,11 @@ def gather_scatter_python(input, edges, directed: bool = False):
     Returns:
         output: Tensor of same shape as input.
     """
-    if not (input.dim() == 2):
+    if input.dim() != 2:
         raise ValueError("input can only have 2 dimensions.")
-    if not (edges.dim() == 2):
+    if edges.dim() != 2:
         raise ValueError("edges can only have 2 dimensions.")
-    if not (edges.shape[1] == 2):
+    if edges.shape[1] != 2:
         raise ValueError("edges must be of shape (num_edges, 2).")
 
     num_vertices, input_feature_dim = input.shape
@@ -142,21 +140,20 @@ class GatherScatter(Function):
         Returns:
             output: Tensor of same shape as input.
         """
-        if not (input.dim() == 2):
+        if input.dim() != 2:
             raise ValueError("input can only have 2 dimensions.")
-        if not (edges.dim() == 2):
+        if edges.dim() != 2:
             raise ValueError("edges can only have 2 dimensions.")
-        if not (edges.shape[1] == 2):
+        if edges.shape[1] != 2:
             raise ValueError("edges must be of shape (num_edges, 2).")
-        if not (input.dtype == torch.float32):
+        if input.dtype != torch.float32:
             raise ValueError("input has to be of type torch.float32.")
 
         ctx.directed = directed
         input, edges = input.contiguous(), edges.contiguous()
         ctx.save_for_backward(edges)
         backward = False
-        output = _C.gather_scatter(input, edges, directed, backward)
-        return output
+        return _C.gather_scatter(input, edges, directed, backward)
 
     @staticmethod
     @once_differentiable

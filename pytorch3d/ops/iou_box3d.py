@@ -153,7 +153,7 @@ def box3d_overlap(
         iou: (N, M) tensor of the intersection over union which is
             defined as: `iou = vol / (vol1 + vol2 - vol)`
     """
-    if not all((8, 3) == box.shape[1:] for box in [boxes1, boxes2]):
+    if any((8, 3) != box.shape[1:] for box in [boxes1, boxes2]):
         raise ValueError("Each box in the batch must be of shape (8, 3)")
 
     _check_coplanar(boxes1, eps)

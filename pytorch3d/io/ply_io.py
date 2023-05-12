@@ -94,10 +94,7 @@ class _PlyElementType:
         Returns:
             True if none of the properties are lists.
         """
-        for property in self.properties:
-            if property.list_size_type is not None:
-                return False
-        return True
+        return all(property.list_size_type is None for property in self.properties)
 
     def is_constant_type_fixed_size(self) -> bool:
         """Return whether the Element has all properties of the same non-list
@@ -110,10 +107,10 @@ class _PlyElementType:
         if not self.is_fixed_size():
             return False
         first_type = _PLY_TYPES[self.properties[0].data_type]
-        for property in self.properties:
-            if _PLY_TYPES[property.data_type] != first_type:
-                return False
-        return True
+        return all(
+            _PLY_TYPES[property.data_type] == first_type
+            for property in self.properties
+        )
 
     def try_constant_list(self) -> bool:
         """Whether the element is just a single list, which might have a
@@ -124,9 +121,7 @@ class _PlyElementType:
         """
         if len(self.properties) != 1:
             return False
-        if self.properties[0].list_size_type is None:
-            return False
-        return True
+        return self.properties[0].list_size_type is not None
 
 
 class _PlyHeader:
@@ -193,7 +188,7 @@ class _PlyHeader:
             if line.startswith("property"):
                 self._parse_property(line)
                 continue
-            raise ValueError("Invalid line: %s." % line)
+            raise ValueError(f"Invalid line: {line}.")
 
     def _parse_property(self, line: str):
         """
@@ -206,18 +201,18 @@ class _PlyHeader:
             raise ValueError("Encountered property before any element.")
         items = line.split(" ")
         if len(items) not in [3, 5]:
-            raise ValueError("Invalid line: %s" % line)
+            raise ValueError(f"Invalid line: {line}")
         datatype = items[1]
-        name = items[-1]
         if datatype == "list":
             datatype = items[3]
             list_size_type = items[2]
             if list_size_type not in _PLY_TYPES:
-                raise ValueError("Invalid datatype: %s" % list_size_type)
+                raise ValueError(f"Invalid datatype: {list_size_type}")
         else:
             list_size_type = None
         if datatype not in _PLY_TYPES:
-            raise ValueError("Invalid datatype: %s" % datatype)
+            raise ValueError(f"Invalid datatype: {datatype}")
+        name = items[-1]
         self.elements[-1].add_property(name, datatype, list_size_type)
 
     def _parse_element(self, line: str):
@@ -231,7 +226,7 @@ class _PlyHeader:
             raise ValueError("Found an element with no properties.")
         items = line.split(" ")
         if len(items) != 3:
-            raise ValueError("Invalid line: %s" % line)
+            raise ValueError(f"Invalid line: {line}")
         try:
             count = int(items[2])
         except ValueError:
@@ -272,9 +267,9 @@ def _read_ply_fixed_size_element_ascii(f, definition: _PlyElementType):
     if not len(data):  # np.loadtxt() seeks even on empty data
         f.seek(old_offset)
     if data.shape[1] != len(definition.properties):
-        raise ValueError("Inconsistent data for %s." % definition.name)
+        raise ValueError(f"Inconsistent data for {definition.name}.")
     if data.shape[0] != definition.count:
-        raise ValueError("Not enough data for %s." % definition.name)
+        raise ValueError(f"Not enough data for {definition.name}.")
     return [data]
 
 
@@ -315,9 +310,9 @@ def _read_ply_nolist_element_ascii(f, definition: _PlyElementType):
     if not len(data):  # np.loadtxt() seeks even on empty data
         f.seek(old_offset)
     if data.shape[1] != len(definition.properties):
-        raise ValueError("Inconsistent data for %s." % definition.name)
+        raise ValueError(f"Inconsistent data for {definition.name}.")
     if data.shape[0] != definition.count:
-        raise ValueError("Not enough data for %s." % definition.name)
+        raise ValueError(f"Not enough data for {definition.name}.")
     pieces = []
     offset = 0
     for dtype, it in itertools.groupby(p.data_type for p in definition.properties):
@@ -384,7 +379,7 @@ def _try_read_ply_constant_list_ascii(f, definition: _PlyElementType):
         msg = "A line of %s data did not have the specified length."
         raise ValueError(msg % definition.name)
     if data.shape[0] != definition.count:
-        raise ValueError("Not enough data for %s." % definition.name)
+        raise ValueError(f"Not enough data for {definition.name}.")
     return data[:, 1:]
 
 
@@ -458,7 +453,7 @@ def _read_ply_element_ascii(f, definition: _PlyElementType):
     for _i in range(definition.count):
         line_string = f.readline()
         if line_string == "":
-            raise ValueError("Not enough data for %s." % definition.name)
+            raise ValueError(f"Not enough data for {definition.name}.")
         datum = []
         line_iter = iter(line_string.strip().split())
         for property in definition.properties:
@@ -492,12 +487,12 @@ def _read_raw_array(
         bytes_data = bytearray(needed_bytes)
         n_bytes_read = f.readinto(bytes_data)
         if n_bytes_read != needed_bytes:
-            raise ValueError("Not enough data for %s." % aim)
+            raise ValueError(f"Not enough data for {aim}.")
         data = np.frombuffer(bytes_data, dtype=dtype)
     else:
         data = np.fromfile(f, dtype=dtype, count=length)
         if data.shape[0] != length:
-            raise ValueError("Not enough data for %s." % aim)
+            raise ValueError(f"Not enough data for {aim}.")
     return data
 
 
@@ -637,7 +632,7 @@ def _try_read_ply_constant_list_binary(
     def get_length():
         bytes_data = f.read(length_struct.size)
         if len(bytes_data) != length_struct.size:
-            raise ValueError("Not enough data for %s." % definition.name)
+            raise ValueError(f"Not enough data for {definition.name}.")
         [length] = length_struct.unpack(bytes_data)
         return length
 
@@ -653,7 +648,7 @@ def _try_read_ply_constant_list_binary(
     for i in range(definition.count):
         bytes_data = f.read(data_size)
         if len(bytes_data) != data_size:
-            raise ValueError("Not enough data for %s" % definition.name)
+            raise ValueError(f"Not enough data for {definition.name}")
         output[i] = np.frombuffer(bytes_data, dtype=np_type)
         if i + 1 == definition.count:
             break
@@ -710,7 +705,7 @@ def _read_ply_element_binary(f, definition: _PlyElementType, big_endian: bool) -
             size = property_struct.size
             initial_data = f.read(size)
             if len(initial_data) != size:
-                raise ValueError("Not enough data for %s" % definition.name)
+                raise ValueError(f"Not enough data for {definition.name}")
             [initial] = property_struct.unpack(initial_data)
             if property.list_size_type is None:
                 datum.append(initial)
@@ -719,7 +714,7 @@ def _read_ply_element_binary(f, definition: _PlyElementType, big_endian: bool) -
                 needed_bytes = type_size * initial
                 list_data = f.read(needed_bytes)
                 if len(list_data) != needed_bytes:
-                    raise ValueError("Not enough data for %s" % definition.name)
+                    raise ValueError(f"Not enough data for {definition.name}")
                 np_type = _PLY_TYPES[property.data_type].np_type
                 list_np = np.frombuffer(list_data, dtype=np_type)
                 if (sys.byteorder == "big") != big_endian:
@@ -759,7 +754,7 @@ def _load_ply_raw_stream(f) -> Tuple[_PlyHeader, dict]:
             elements[element.name] = _read_ply_element_binary(f, element, big)
     end = f.read().strip()
     if len(end) != 0:
-        raise ValueError("Extra data at end of file: " + str(end[:20]))
+        raise ValueError(f"Extra data at end of file: {str(end[:20])}")
     return header, elements
 
 
@@ -1048,8 +1043,10 @@ def _load_ply(f, *, path_manager: PathManager) -> _PlyData:
                 raise ValueError("Bad face data.")
             if face_item.shape[0] < 3:
                 raise ValueError("Faces must have at least 3 vertices.")
-            for i in range(face_item.shape[0] - 2):
-                face_list.append([face_item[0], face_item[i + 1], face_item[i + 2]])
+            face_list.extend(
+                [face_item[0], face_item[i + 1], face_item[i + 2]]
+                for i in range(face_item.shape[0] - 2)
+            )
         faces = torch.tensor(face_list, dtype=torch.int64)
 
     if faces is not None:
@@ -1232,10 +1229,11 @@ def _save_ply(
             vert_data["colors"] = color_data
 
     if ascii:
-        if decimal_places is None:
-            float_str = b"%f"
-        else:
-            float_str = b"%" + b".%df" % decimal_places
+        float_str = (
+            b"%f"
+            if decimal_places is None
+            else b"%" + b".%df" % decimal_places
+        )
         float_group_str = (float_str + b" ") * 3
         formats = [float_group_str]
         if verts_normals is not None:
@@ -1246,12 +1244,11 @@ def _save_ply(
         for line_data in vert_data:
             for data, format in zip(line_data, formats):
                 f.write(format % tuple(data))
+    elif isinstance(f, BytesIO):
+        # tofile only works with real files, but is faster than this.
+        f.write(vert_data.tobytes())
     else:
-        if isinstance(f, BytesIO):
-            # tofile only works with real files, but is faster than this.
-            f.write(vert_data.tobytes())
-        else:
-            vert_data.tofile(f)
+        vert_data.tofile(f)
 
     if faces is not None:
         faces_array = faces.detach().cpu().numpy()
@@ -1298,14 +1295,14 @@ def save_ply(
         path_manager: PathManager for interpreting f if it is a str.
     """
 
-    if len(verts) and not (verts.dim() == 2 and verts.size(1) == 3):
+    if len(verts) and (verts.dim() != 2 or verts.size(1) != 3):
         message = "Argument 'verts' should either be empty or of shape (num_verts, 3)."
         raise ValueError(message)
 
     if (
         faces is not None
         and len(faces)
-        and not (faces.dim() == 2 and faces.size(1) == 3)
+        and (faces.dim() != 2 or faces.size(1) != 3)
     ):
         message = "Argument 'faces' should either be empty or of shape (num_faces, 3)."
         raise ValueError(message)
@@ -1364,13 +1361,12 @@ class MeshPlyFormat(MeshFormatInterpreter):
         verts_normals = None
         if data.verts_normals is not None:
             verts_normals = [data.verts_normals.to(device)]
-        mesh = Meshes(
+        return Meshes(
             verts=[data.verts.to(device)],
             faces=[faces.to(device)],
             textures=texture,
             verts_normals=verts_normals,
         )
-        return mesh
 
     def save(
         self,
@@ -1447,10 +1443,9 @@ class PointcloudPlyFormat(PointcloudFormatInterpreter):
         if data.verts_normals is not None:
             normals = [data.verts_normals.to(device)]
 
-        pointcloud = Pointclouds(
+        return Pointclouds(
             points=[data.verts.to(device)], features=features, normals=normals
         )
-        return pointcloud
 
     def save(
         self,

@@ -169,11 +169,9 @@ def _format_radius(
         if N == 1 and radius.ndim == 1:
             radius = radius[None, ...]
         if radius.shape != (N, P_padded):
-            msg = "radius must be of shape (N, P): got %s"
-            raise ValueError(msg % (repr(radius.shape)))
-        else:
-            padded_to_packed_idx = pointclouds.padded_to_packed_idx()
-            radius = radius.view(-1)[padded_to_packed_idx]
+            raise ValueError(f"radius must be of shape (N, P): got {repr(radius.shape)}")
+        padded_to_packed_idx = pointclouds.padded_to_packed_idx()
+        radius = radius.view(-1)[padded_to_packed_idx]
     elif isinstance(radius, float):
         radius = torch.full((P_packed,), fill_value=radius).type_as(points_packed)
     else:
@@ -227,7 +225,7 @@ class _RasterizePoints(torch.autograd.Function):
         points, idx = ctx.saved_tensors
         args = (points, idx, grad_zbuf, grad_dists)
         grad_points = _C.rasterize_points_backward(*args)
-        grads = (
+        return (
             grad_points,
             grad_cloud_to_packed_first_idx,
             grad_num_points_per_cloud,
@@ -237,7 +235,6 @@ class _RasterizePoints(torch.autograd.Function):
             grad_bin_size,
             grad_max_points_per_bin,
         )
-        return grads
 
 
 def rasterize_points_python(

@@ -43,7 +43,11 @@ def generate_eval_video_cameras(
     Returns:
         Dictionary of camera instances which can be used as the test dataset
     """
-    if trajectory_type in ("figure_eight", "trefoil_knot", "figure_eight_knot"):
+    if trajectory_type in {
+        "figure_eight",
+        "trefoil_knot",
+        "figure_eight_knot",
+    }:
         cam_centers = torch.cat(
             [e["camera"].get_camera_center() for e in train_dataset]
         )
@@ -56,12 +60,12 @@ def generate_eval_video_cameras(
         )
         # generate the knot trajectory in canonical coords
         time = torch.linspace(0, 2 * math.pi, n_eval_cams + 1)[:n_eval_cams]
-        if trajectory_type == "trefoil_knot":
-            traj = _trefoil_knot(time)
+        if trajectory_type == "figure_eight":
+            traj = _figure_eight(time)
         elif trajectory_type == "figure_eight_knot":
             traj = _figure_eight_knot(time)
-        elif trajectory_type == "figure_eight":
-            traj = _figure_eight(time)
+        elif trajectory_type == "trefoil_knot":
+            traj = _trefoil_knot(time)
         traj[:, 2] -= traj[:, 2].max()
 
         # transform the canonical knot to the coord frame of the mean camera
@@ -119,8 +123,7 @@ def generate_eval_video_cameras(
     focal = torch.cat([e["camera"].focal_length for e in train_dataset]).mean(dim=0)
     p0 = torch.cat([e["camera"].principal_point for e in train_dataset]).mean(dim=0)
 
-    # assemble the dataset
-    test_dataset = [
+    return [
         {
             "image": None,
             "camera": PerspectiveCameras(
@@ -133,8 +136,6 @@ def generate_eval_video_cameras(
         }
         for i, (R_, T_) in enumerate(zip(R, T))
     ]
-
-    return test_dataset
 
 
 def _figure_eight_knot(t: torch.Tensor, z_scale: float = 0.5):

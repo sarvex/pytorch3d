@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 def _minify(basedir, path_manager, factors=(), resolutions=()):
     needtoload = False
     for r in factors:
-        imgdir = os.path.join(basedir, "images_{}".format(r))
+        imgdir = os.path.join(basedir, f"images_{r}")
         if not _exists(path_manager, imgdir):
             needtoload = True
     for r in resolutions:
-        imgdir = os.path.join(basedir, "images_{}x{}".format(r[1], r[0]))
+        imgdir = os.path.join(basedir, f"images_{r[1]}x{r[0]}")
         if not _exists(path_manager, imgdir):
             needtoload = True
     if not needtoload:
@@ -37,7 +37,7 @@ def _minify(basedir, path_manager, factors=(), resolutions=()):
     imgs = [
         f
         for f in imgs
-        if any([f.endswith(ex) for ex in ["JPG", "jpg", "png", "jpeg", "PNG"]])
+        if any(f.endswith(ex) for ex in ["JPG", "jpg", "png", "jpeg", "PNG"])
     ]
     imgdir_orig = imgdir
 
@@ -45,11 +45,11 @@ def _minify(basedir, path_manager, factors=(), resolutions=()):
 
     for r in factors + resolutions:
         if isinstance(r, int):
-            name = "images_{}".format(r)
-            resizearg = "{}%".format(100.0 / r)
+            name = f"images_{r}"
+            resizearg = f"{100.0 / r}%"
         else:
-            name = "images_{}x{}".format(r[1], r[0])
-            resizearg = "{}x{}".format(r[1], r[0])
+            name = f"images_{r[1]}x{r[0]}"
+            resizearg = f"{r[1]}x{r[0]}"
         imgdir = os.path.join(basedir, name)
         if os.path.exists(imgdir):
             continue
@@ -57,11 +57,11 @@ def _minify(basedir, path_manager, factors=(), resolutions=()):
         logger.info(f"Minifying {r}, {basedir}")
 
         os.makedirs(imgdir)
-        check_output("cp {}/* {}".format(imgdir_orig, imgdir), shell=True)
+        check_output(f"cp {imgdir_orig}/* {imgdir}", shell=True)
 
         ext = imgs[0].split(".")[-1]
         args = " ".join(
-            ["mogrify", "-resize", resizearg, "-format", "png", "*.{}".format(ext)]
+            ["mogrify", "-resize", resizearg, "-format", "png", f"*.{ext}"]
         )
         logger.info(args)
         os.chdir(imgdir)
@@ -69,7 +69,7 @@ def _minify(basedir, path_manager, factors=(), resolutions=()):
         os.chdir(wd)
 
         if ext != "png":
-            check_output("rm {}/*.{}".format(imgdir, ext), shell=True)
+            check_output(f"rm {imgdir}/*.{ext}", shell=True)
             logger.info("Removed duplicates")
         logger.info("Done")
 
@@ -114,7 +114,7 @@ def _load_data(
     else:
         factor = 1
 
-    imgdir = os.path.join(basedir, "images" + sfx)
+    imgdir = os.path.join(basedir, f"images{sfx}")
     if not _exists(path_manager, imgdir):
         raise ValueError(f"{imgdir} does not exist, returning")
 
@@ -156,13 +156,11 @@ def viewmatrix(z, up, pos):
     vec1_avg = up
     vec0 = normalize(np.cross(vec1_avg, vec2))
     vec1 = normalize(np.cross(vec2, vec0))
-    m = np.stack([vec0, vec1, vec2, pos], 1)
-    return m
+    return np.stack([vec0, vec1, vec2, pos], 1)
 
 
 def ptstocam(pts, c2w):
-    tt = np.matmul(c2w[:3, :3].T, (pts - c2w[:3, 3])[..., np.newaxis])[..., 0]
-    return tt
+    return np.matmul(c2w[:3, :3].T, (pts - c2w[:3, 3])[..., np.newaxis])[..., 0]
 
 
 def poses_avg(poses):
@@ -172,9 +170,7 @@ def poses_avg(poses):
     center = poses[:, :3, 3].mean(0)
     vec2 = normalize(poses[:, :3, 2].sum(0))
     up = poses[:, :3, 1].sum(0)
-    c2w = np.concatenate([viewmatrix(vec2, up, center), hwf], 1)
-
-    return c2w
+    return np.concatenate([viewmatrix(vec2, up, center), hwf], 1)
 
 
 def render_path_spiral(c2w, up, rads, focal, zdelta, zrate, rots, N):
@@ -287,15 +283,11 @@ def spherify_poses(poses, bds):
 
 
 def _local_path(path_manager, path):
-    if path_manager is None:
-        return path
-    return path_manager.get_local_path(path)
+    return path if path_manager is None else path_manager.get_local_path(path)
 
 
 def _ls(path_manager, path):
-    if path_manager is None:
-        return os.listdir(path)
-    return path_manager.ls(path)
+    return os.listdir(path) if path_manager is None else path_manager.ls(path)
 
 
 def _exists(path_manager, path):

@@ -136,24 +136,22 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
         assert scheduler.last_epoch == stats.epoch + 1
         assert scheduler.last_epoch == start_epoch
 
-        # only run evaluation on the test dataloader
         if self.eval_only:
-            if test_loader is not None:
-                # pyre-fixme[16]: `Optional` has no attribute `run`.
-                self.evaluator.run(
-                    dataloader=test_loader,
-                    device=device,
-                    dump_to_json=True,
-                    epoch=stats.epoch,
-                    exp_dir=exp_dir,
-                    model=model,
-                )
-                return
-            else:
+            if test_loader is None:
                 raise ValueError(
                     "Cannot evaluate and dump results to json, no test data provided."
                 )
 
+            # pyre-fixme[16]: `Optional` has no attribute `run`.
+            self.evaluator.run(
+                dataloader=test_loader,
+                device=device,
+                dump_to_json=True,
+                epoch=stats.epoch,
+                exp_dir=exp_dir,
+                model=model,
+            )
+            return
         # loop through epochs
         for epoch in range(start_epoch, self.max_epochs):
             # automatic new_epoch and plotting of stats at every epoch start
@@ -212,7 +210,11 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
                     logger.info(f"LR change! {cur_lr} -> {new_lr}")
 
         if self.test_when_finished:
-            if test_loader is not None:
+            if test_loader is None:
+                raise ValueError(
+                    "Cannot evaluate and dump results to json, no test data provided."
+                )
+            else:
                 self.evaluator.run(
                     device=device,
                     dump_to_json=True,
@@ -220,10 +222,6 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
                     exp_dir=exp_dir,
                     dataloader=test_loader,
                     model=model,
-                )
-            else:
-                raise ValueError(
-                    "Cannot evaluate and dump results to json, no test data provided."
                 )
 
     def load_stats(
@@ -249,7 +247,7 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
         """
         # Init the stats struct
         visdom_env_charts = (
-            vis_utils.get_visdom_env(self.visdom_env, exp_dir) + "_charts"
+            f"{vis_utils.get_visdom_env(self.visdom_env, exp_dir)}_charts"
         )
         stats = Stats(
             # log_vars should be a list, but OmegaConf might load them as ListConfig
@@ -344,7 +342,7 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
         t_start = time.time()
 
         # get the visdom env name
-        visdom_env_imgs = stats.visdom_env + "_images_" + trainmode
+        visdom_env_imgs = f"{stats.visdom_env}_images_{trainmode}"
         viz = vis_utils.get_visdom_connection(
             server=stats.visdom_server,
             port=stats.visdom_port,
@@ -389,16 +387,15 @@ class ImplicitronTrainingLoop(TrainingLoopBase):
                 (accelerator is None or accelerator.is_local_main_process)
                 and self.visualize_interval > 0
                 and it % self.visualize_interval == 0
-            ):
+            ) and hasattr(model, "visualize"):
                 prefix = f"e{stats.epoch}_it{stats.it[trainmode]}"
-                if hasattr(model, "visualize"):
-                    # pyre-ignore [29]
-                    model.visualize(
-                        viz,
-                        visdom_env_imgs,
-                        preds,
-                        prefix,
-                    )
+                # pyre-ignore [29]
+                model.visualize(
+                    viz,
+                    visdom_env_imgs,
+                    preds,
+                    prefix,
+                )
 
             # optimizer step
             if not validation:

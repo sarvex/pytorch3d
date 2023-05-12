@@ -137,16 +137,13 @@ def _read_faces(
     if n_faces == 0:
         return None, None
 
-    color_is_int = 0 == _count_next_line_periods(file)
+    color_is_int = _count_next_line_periods(file) == 0
     color_scale = 1 / 255.0 if color_is_int else 1
 
     faces_ncolors_colors = _read_faces_lump(file, n_faces=n_faces, n_colors=None)
     if faces_ncolors_colors is not None:
         faces, _, colors = faces_ncolors_colors
-        if colors is None:
-            return faces, None
-        return faces, colors * color_scale
-
+        return (faces, None) if colors is None else (faces, colors * color_scale)
     faces_list, colors_list = [], []
     n_colors = None
     for _ in range(n_faces):
@@ -157,10 +154,7 @@ def _read_faces(
         faces_list.append(faces_found)
         colors_list.append(colors_found)
     faces = np.vstack(faces_list)
-    if n_colors == 0:
-        colors = None
-    else:
-        colors = np.vstack(colors_list) * color_scale
+    colors = None if n_colors == 0 else np.vstack(colors_list) * color_scale
     return faces, colors
 
 
@@ -177,9 +171,7 @@ def _read_verts(file, n_verts: int) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         vertex colors.
     """
 
-    color_is_int = 3 == _count_next_line_periods(file)
-    color_scale = 1 / 255.0 if color_is_int else 1
-
+    color_is_int = _count_next_line_periods(file) == 3
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore", message=".* Empty input file.*", category=UserWarning
@@ -190,9 +182,13 @@ def _read_verts(file, n_verts: int) -> Tuple[np.ndarray, Optional[np.ndarray]]:
     if data.shape[1] not in [3, 6, 7]:
         raise ValueError("Bad vertex data.")
 
-    if data.shape[1] == 3:
-        return data, None
-    return data[:, :3], data[:, 3:] * color_scale  # []
+    color_scale = 1 / 255.0 if color_is_int else 1
+
+    return (
+        (data, None)
+        if data.shape[1] == 3
+        else (data[:, :3], data[:, 3:] * color_scale)
+    )
 
 
 def _load_off_stream(file) -> dict:
@@ -242,26 +238,26 @@ def _load_off_stream(file) -> dict:
 
     items = header.split()
     if len(items) < 3:
-        raise ValueError("Invalid counts line: %s" % header)
+        raise ValueError(f"Invalid counts line: {header}")
 
     try:
         n_verts = int(items[0])
     except ValueError:
-        raise ValueError("Invalid counts line: %s" % header) from None
+        raise ValueError(f"Invalid counts line: {header}") from None
     try:
         n_faces = int(items[1])
     except ValueError:
-        raise ValueError("Invalid counts line: %s" % header) from None
+        raise ValueError(f"Invalid counts line: {header}") from None
 
     if (len(items) > 3 and not items[3].startswith(b"#")) or n_verts < 0 or n_faces < 0:
-        raise ValueError("Invalid counts line: %s" % header)
+        raise ValueError(f"Invalid counts line: {header}")
 
     verts, verts_colors = _read_verts(file, n_verts)
     faces, faces_colors = _read_faces(file, n_faces)
 
     end = file.read().strip()
     if len(end) != 0:
-        raise ValueError("Extra data at end of file: " + str(end[:20]))
+        raise ValueError(f"Extra data at end of file: {str(end[:20])}")
 
     out = {"verts": verts}
     if verts_colors is not None:
@@ -297,10 +293,7 @@ def _write_off_data(
 
     if verts_colors is not None:
         verts = torch.cat((verts, verts_colors), dim=1)
-    if decimal_places is None:
-        float_str = "%f"
-    else:
-        float_str = "%" + ".%df" % decimal_places
+    float_str = "%f" if decimal_places is None else "%" + ".%df" % decimal_places
     np.savetxt(file, verts.cpu().detach().numpy(), float_str)
 
     if faces is not None:
@@ -341,26 +334,26 @@ def _save_off(
         faces_colors: FloatTensor of shape (V, C) giving face colors where C is 3 or 4.
         decimal_places: Number of decimal places for saving.
     """
-    if len(verts) and not (verts.dim() == 2 and verts.size(1) == 3):
+    if len(verts) and (verts.dim() != 2 or verts.size(1) != 3):
         message = "Argument 'verts' should either be empty or of shape (num_verts, 3)."
         raise ValueError(message)
 
-    if verts_colors is not None and 0 == len(verts_colors):
+    if verts_colors is not None and len(verts_colors) == 0:
         verts_colors = None
-    if faces_colors is not None and 0 == len(faces_colors):
+    if faces_colors is not None and len(faces_colors) == 0:
         faces_colors = None
-    if faces is not None and 0 == len(faces):
+    if faces is not None and len(faces) == 0:
         faces = None
 
     if verts_colors is not None:
-        if not (verts_colors.dim() == 2 and verts_colors.size(1) in [3, 4]):
+        if verts_colors.dim() != 2 or verts_colors.size(1) not in [3, 4]:
             message = "verts_colors should have shape (num_faces, C)."
             raise ValueError(message)
         if verts_colors.shape[0] != verts.shape[0]:
             message = "verts_colors should have the same length as verts."
             raise ValueError(message)
 
-    if faces is not None and not (faces.dim() == 2 and faces.size(1) == 3):
+    if faces is not None and (faces.dim() != 2 or faces.size(1) != 3):
         message = "Argument 'faces' if present should have shape (num_faces, 3)."
         raise ValueError(message)
     if faces_colors is not None and faces is None:
@@ -368,7 +361,7 @@ def _save_off(
         raise ValueError(message)
 
     if faces_colors is not None:
-        if not (faces_colors.dim() == 2 and faces_colors.size(1) in [3, 4]):
+        if faces_colors.dim() != 2 or faces_colors.size(1) not in [3, 4]:
             message = "faces_colors should have shape (num_faces, C)."
             raise ValueError(message)
         if faces_colors.shape[0] != cast(torch.LongTensor, faces).shape[0]:
@@ -451,10 +444,9 @@ class MeshOffFormat(MeshFormatInterpreter):
             faces_colors = torch.from_numpy(data["faces_colors"]).to(device)
             textures = TexturesAtlas([faces_colors[:, None, None, :]])
 
-        mesh = Meshes(
+        return Meshes(
             verts=[verts.to(device)], faces=[faces.to(device)], textures=textures
         )
-        return mesh
 
     def save(
         self,

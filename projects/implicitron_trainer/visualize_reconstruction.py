@@ -111,9 +111,7 @@ def visualize_reconstruction(
         raise ValueError(f"{split} dataset not provided")
 
     if visdom_env is None:
-        visdom_env = (
-            "visualizer_" + config.training_loop_ImplicitronTrainingLoop_args.visdom_env
-        )
+        visdom_env = f"visualizer_{config.training_loop_ImplicitronTrainingLoop_args.visdom_env}"
 
     # iterate over the sequences in the dataset
     for sequence_name in dataset.sequence_names():

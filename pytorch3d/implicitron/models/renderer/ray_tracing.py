@@ -381,9 +381,9 @@ class RayTracing(Configurable, nn.Module):
         points = points.reshape((-1, self.n_steps, 3))[sampler_mask, :, :]
         pts_intervals = pts_intervals.reshape((-1, self.n_steps))[sampler_mask]
 
-        sdf_val_all = []
-        for pnts in torch.split(points.reshape(-1, 3), 100000, dim=0):
-            sdf_val_all.append(sdf(pnts))
+        sdf_val_all = [
+            sdf(pnts) for pnts in torch.split(points.reshape(-1, 3), 100000, dim=0)
+        ]
         sdf_val = torch.cat(sdf_val_all).reshape(-1, self.n_steps)
 
         tmp = torch.sign(sdf_val) * torch.arange(
@@ -537,10 +537,7 @@ class RayTracing(Configurable, nn.Module):
         ) * mask_rays.unsqueeze(1).repeat(1, n, 1)
         points = mask_points_all.reshape(-1, 3)
 
-        mask_sdf_all = []
-        for pnts in torch.split(points, 100000, dim=0):
-            mask_sdf_all.append(sdf(pnts))
-
+        mask_sdf_all = [sdf(pnts) for pnts in torch.split(points, 100000, dim=0)]
         mask_sdf_all = torch.cat(mask_sdf_all).reshape(-1, n)
         min_vals, min_idx = mask_sdf_all.min(-1)
         min_mask_points = mask_points_all.reshape(-1, n, 3)[

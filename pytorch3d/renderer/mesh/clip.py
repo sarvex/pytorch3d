@@ -302,7 +302,9 @@ def _find_verts_intersecting_clipping_plane(
     # Set the barycentric coordinates of p1,p2,p3,p4,p5 in terms of the original
     # unclipped triangle in face_verts.
     T_idx = torch.arange(T, device=face_verts.device)
-    p_barycentric = [torch.zeros((T, 3), device=face_verts.device) for i in range(5)]
+    p_barycentric = [
+        torch.zeros((T, 3), device=face_verts.device) for _ in range(5)
+    ]
     p_barycentric[0][(T_idx, p1_face_ind)] = 1
     p_barycentric[1][(T_idx, p2_face_ind)] = 1
     p_barycentric[2][(T_idx, p3_face_ind)] = 1
@@ -595,7 +597,7 @@ def clip_faces(
     clipped_faces_neighbor_idx[case4_clipped_idx] = case4_clipped_idx + 1
     clipped_faces_neighbor_idx[case4_clipped_idx + 1] = case4_clipped_idx
 
-    clipped_faces = ClippedFaces(
+    return ClippedFaces(
         face_verts=face_verts_clipped,
         mesh_to_face_first_idx=mesh_to_face_first_idx_clipped,
         num_faces_per_mesh=num_faces_per_mesh_clipped,
@@ -604,7 +606,6 @@ def clip_faces(
         faces_clipped_to_conversion_idx=faces_clipped_to_conversion_idx,
         clipped_faces_neighbor_idx=clipped_faces_neighbor_idx,
     )
-    return clipped_faces
 
 
 def convert_clipped_rasterization_to_original_faces(

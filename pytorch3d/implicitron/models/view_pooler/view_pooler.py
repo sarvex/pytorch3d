@@ -115,13 +115,9 @@ class ViewPooler(Configurable, torch.nn.Module):
             masks=masks,
         )
 
-        # (2) Aggregate features from multiple views
-        # pyre-fixme[29]: `Union[torch.Tensor, torch.nn.Module]` is not a function.
-        feats_aggregated = self.feature_aggregator(  # noqa: E731
+        return self.feature_aggregator(  # noqa: E731
             sampled_feats,
             sampled_masks,
             pts=pts,
             camera=camera,
-        )  # TODO: do we need to pass a callback rather than compute here?
-
-        return feats_aggregated
+        )

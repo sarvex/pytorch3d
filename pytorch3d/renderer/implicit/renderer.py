@@ -288,8 +288,7 @@ class VolumeSampler(torch.nn.Module):
             dtype=world2local.dtype,
         )
         directions_transform_matrix[:, :3, :3] = world2local[:, :3, :3]
-        directions_transform = Transform3d(matrix=directions_transform_matrix)
-        return directions_transform
+        return Transform3d(matrix=directions_transform_matrix)
 
     def forward(
         self, ray_bundle: Union[RayBundle, HeterogeneousRayBundle], **kwargs

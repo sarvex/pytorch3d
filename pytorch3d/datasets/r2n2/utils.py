@@ -100,7 +100,7 @@ def collate_batched_R2N2(batch: List[Dict]):  # pragma: no cover
 
 def compute_extrinsic_matrix(
     azimuth: float, elevation: float, distance: float
-):  # pragma: no cover
+):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/shapenet/utils/coords.py#L96
@@ -118,7 +118,7 @@ def compute_extrinsic_matrix(
     Returns:
         FloatTensor of shape (4, 4).
     """
-    azimuth, elevation, distance = float(azimuth), float(elevation), float(distance)
+    azimuth, elevation, distance = azimuth, elevation, distance
 
     az_rad = -math.pi * azimuth / 180.0
     el_rad = -math.pi * elevation / 180.0
@@ -193,7 +193,7 @@ def read_binvox_coords(
     return coords.to(dtype)
 
 
-def _compute_idxs(vals, counts):  # pragma: no cover
+def _compute_idxs(vals, counts):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/shapenet/utils/binvox_torch.py#L58
@@ -241,12 +241,10 @@ def _compute_idxs(vals, counts):  # pragma: no cover
     val = start_idxs[1:] - end_idxs[:-1]
     delta[pos] += val
 
-    # A final cumsum gives the idx we want: [2, 3, 4, 8, 9, 10]
-    idxs = delta.cumsum(dim=0)
-    return idxs
+    return delta.cumsum(dim=0)
 
 
-def _read_binvox_header(f):  # pragma: no cover
+def _read_binvox_header(f):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/shapenet/utils/binvox_torch.py#L99
@@ -298,19 +296,19 @@ def _read_binvox_header(f):  # pragma: no cover
     if not line.startswith(b"scale "):
         raise ValueError("Invalid header (line 4)")
     line = line.split(b" ")
-    if not len(line) == 2:
+    if len(line) != 2:
         raise ValueError("Invalid header (line 4)")
     scale = float(line[1])
 
     # Fifth line of the header should be "data"
     line = f.readline().strip()
-    if not line == b"data":
+    if line != b"data":
         raise ValueError("Invalid header (line 5)")
 
     return size, translation, scale
 
 
-def align_bbox(src, tgt):  # pragma: no cover
+def align_bbox(src, tgt):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/tools/preprocess_shapenet.py#L263
@@ -336,11 +334,10 @@ def align_bbox(src, tgt):  # pragma: no cover
     tgt_max = tgt.max(dim=0)[0]
     scale = (tgt_max - tgt_min) / (src_max - src_min)
     shift = tgt_min - scale * src_min
-    out = scale * src + shift
-    return out
+    return scale * src + shift
 
 
-def voxelize(voxel_coords, P, V):  # pragma: no cover
+def voxelize(voxel_coords, P, V):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/tools/preprocess_shapenet.py#L284
@@ -377,7 +374,7 @@ def voxelize(voxel_coords, P, V):  # pragma: no cover
     # Now voxels are in [-1, 1]^3; map to [0, V-1)^3
     voxel_coords = 0.5 * (V - 1) * (voxel_coords + 1.0)
     voxel_coords = voxel_coords.round().to(torch.int64)
-    valid = (0 <= voxel_coords) * (voxel_coords < V)
+    valid = (voxel_coords >= 0) * (voxel_coords < V)
     valid = valid[:, 0] * valid[:, 1] * valid[:, 2]
     x, y, z = voxel_coords.unbind(dim=1)
     x, y, z = x[valid], y[valid], z[valid]
@@ -387,7 +384,7 @@ def voxelize(voxel_coords, P, V):  # pragma: no cover
     return voxels
 
 
-def project_verts(verts, P, eps: float = 1e-1):  # pragma: no cover
+def project_verts(verts, P, eps: float = 1e-1):    # pragma: no cover
     """
     Copied from meshrcnn codebase:
     https://github.com/facebookresearch/meshrcnn/blob/main/shapenet/utils/coords.py#L159
@@ -431,9 +428,7 @@ def project_verts(verts, P, eps: float = 1e-1):  # pragma: no cover
 
     verts_proj = verts_cam_hom[:, :, :3] / w
 
-    if singleton:
-        return verts_proj[0]
-    return verts_proj
+    return verts_proj[0] if singleton else verts_proj
 
 
 class BlenderCamera(CamerasBase):  # pragma: no cover

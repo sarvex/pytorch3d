@@ -221,8 +221,7 @@ def _compute_occlusion_layers(
         qtop_to_p_closest_id,
     )  # (N, 9, H, W)
 
-    occlusion_layers = occlusion_offsets.permute((0, 2, 3, 1))  # (N, H, W, 9)
-    return occlusion_layers
+    return occlusion_offsets.permute((0, 2, 3, 1))
 
 
 def _compute_splatting_colors_and_weights(
@@ -557,10 +556,8 @@ class SplatterBlender(torch.nn.Module):
             occlusion_layers, splat_colors_and_weights
         )  # (N, H, W, 4, 3) and (N, H, W, 1, 3)
 
-        output_colors = _normalize_and_compose_all_layers(
+        return _normalize_and_compose_all_layers(
             _get_background_color(blend_params, colors.device),
             splatted_colors_per_occlusion_layer,
             splatted_weights_per_occlusion_layer,
-        )  # (N, H, W, 4)
-
-        return output_colors
+        )

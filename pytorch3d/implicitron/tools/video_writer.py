@@ -102,16 +102,15 @@ class VideoWriter:
         elif isinstance(frame, str):
             im = Image.open(frame).convert("RGB")
         else:
-            raise ValueError("Cant convert type %s" % str(type(frame)))
+            raise ValueError(f"Cant convert type {str(type(frame))}")
 
         if im is not None:
-            if resize is not None:
-                if isinstance(resize, float):
-                    resize = [int(resize * s) for s in im.size]
-            else:
+            if resize is None:
                 resize = im.size
+            elif isinstance(resize, float):
+                resize = [int(resize * s) for s in im.size]
             # make sure size is divisible by 2
-            resize = tuple([resize[i] + resize[i] % 2 for i in (0, 1)])
+            resize = tuple(resize[i] + resize[i] % 2 for i in (0, 1))
             im = im.resize(resize, Image.ANTIALIAS)
             im.save(outfile)
 
@@ -138,39 +137,37 @@ class VideoWriter:
 
         if shutil.which(self.ffmpeg_bin) is None:
             raise ValueError(
-                f"Cannot find ffmpeg as `{self.ffmpeg_bin}`. "
-                + "Please set FFMPEG in the environment or ffmpeg_bin on this class."
+                f"Cannot find ffmpeg as `{self.ffmpeg_bin}`. Please set FFMPEG in the environment or ffmpeg_bin on this class."
             )
 
-        if self.output_format == "visdom":  # works for ppt too
-            args = [
-                self.ffmpeg_bin,
-                "-r",
-                str(self.fps),
-                "-i",
-                regexp,
-                "-vcodec",
-                "h264",
-                "-f",
-                "mp4",
-                "-y",
-                "-crf",
-                "18",
-                "-b",
-                "2000k",
-                "-pix_fmt",
-                "yuv420p",
-                self.out_path,
-            ]
-            if quiet:
-                subprocess.check_call(
-                    args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
-            else:
-                subprocess.check_call(args)
-        else:
-            raise ValueError("no such output type %s" % str(self.output_format))
+        if self.output_format != "visdom":
+            raise ValueError(f"no such output type {str(self.output_format)}")
 
+        args = [
+            self.ffmpeg_bin,
+            "-r",
+            str(self.fps),
+            "-i",
+            regexp,
+            "-vcodec",
+            "h264",
+            "-f",
+            "mp4",
+            "-y",
+            "-crf",
+            "18",
+            "-b",
+            "2000k",
+            "-pix_fmt",
+            "yuv420p",
+            self.out_path,
+        ]
+        if quiet:
+            subprocess.check_call(
+                args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        else:
+            subprocess.check_call(args)
         return self.out_path
 
     def __del__(self) -> None:

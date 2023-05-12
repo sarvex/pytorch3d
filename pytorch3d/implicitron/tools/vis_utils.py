@@ -28,11 +28,7 @@ def get_visdom_env(visdom_env: str, exp_dir: str) -> str:
         visdom_env: The name of the visdom environment. If the given visdom_env is
             empty, return the name of the bottom directory in exp_dir.
     """
-    if len(visdom_env) == 0:
-        visdom_env = exp_dir.split("/")[-1]
-    else:
-        visdom_env = visdom_env
-    return visdom_env
+    return exp_dir.split("/")[-1] if not visdom_env else visdom_env
 
 
 # TODO: a proper singleton
@@ -136,7 +132,7 @@ def visualize_basics(
             v.clamp(0.0, 1.0),
             win=k,
             env=visdom_env_imgs,
-            opts={"title": title + "_" + k, "store_history": store_history},
+            opts={"title": f"{title}_{k}", "store_history": store_history},
         )
 
 

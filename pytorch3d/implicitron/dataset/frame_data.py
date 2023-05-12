@@ -179,7 +179,7 @@ class FrameData(Mapping[str, Any]):
         return getattr(self, key)
 
     def __len__(self):
-        return sum(1 for f in iter(self))
+        return sum(1 for _ in iter(self))
 
     def crop_by_metadata_bbox_(
         self,
@@ -706,8 +706,7 @@ class GenericFrameDataBuilder(FrameDataBuilderBase[FrameDataSubtype], ABC):
         unwanted_prefix = (
             "/large_experiments/p3/replay/datasets/co3d/co3d45k_220512/export_v23/"
         )
-        if path.startswith(unwanted_prefix):
-            path = path[len(unwanted_prefix) :]
+        path = path.removeprefix(unwanted_prefix)
         return os.path.join(self.dataset_root, path)
 
     def _local_path(self, path: str) -> str:

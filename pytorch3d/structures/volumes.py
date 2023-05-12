@@ -330,11 +330,7 @@ class Volumes:
             or `None` for feature-less volumes.
         """
         features_ = self.features()
-        if features_ is None:
-            # No features provided so return None
-            # pyre-fixme[7]: Expected `List[torch.Tensor]` but got `None`.
-            return None
-        return self._features_densities_list(features_)
+        return None if features_ is None else self._features_densities_list(features_)
 
     def _features_densities_list(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
@@ -350,8 +346,7 @@ class Volumes:
         pad_sizes = torch.nn.functional.pad(
             self.get_grid_sizes(), [1, 0], mode="constant", value=x_dim
         )
-        x_list = struct_utils.padded_to_list(x, pad_sizes.tolist())
-        return x_list
+        return struct_utils.padded_to_list(x, pad_sizes.tolist())
 
     def update_padded(
         self, new_densities: torch.Tensor, new_features: Optional[torch.Tensor] = None
@@ -404,7 +399,7 @@ class Volumes:
                 f"The size of every grid in `{var_name}` has to match the size of"
                 "the corresponding `densities` grid."
             )
-        setattr(self, "_" + var_name, x_tensor)
+        setattr(self, f"_{var_name}", x_tensor)
 
     def clone(self) -> "Volumes":
         """
@@ -754,19 +749,9 @@ class VolumeLocator:
         volume_size_zyx = self.get_grid_sizes().float()
         volume_size_xyz = volume_size_zyx[:, [2, 1, 0]]
 
-        # x_local = (
-        #       (x_world + volume_translation) / (0.5 * voxel_size)
-        #   ) / (volume_size - 1)
-
-        # x_world = (
-        #       x_local * (volume_size - 1) * 0.5 * voxel_size
-        #   ) - volume_translation
-
-        local_to_world_transform = Scale(
+        return Scale(
             (volume_size_xyz - 1) * voxel_size * 0.5, device=self.device
         ).translate(-volume_translation)
-
-        return local_to_world_transform
 
     def get_coord_grid(self, world_coordinates: bool = True) -> torch.Tensor:
         """
@@ -832,12 +817,11 @@ class VolumeLocator:
             vol_coords_local *= grid_sizes_relative_reshape
             vol_coords_local += grid_sizes_relative_reshape - 1
 
-        if world_coordinates:
-            vol_coords = self.local_to_world_coords(vol_coords_local)
-        else:
-            vol_coords = vol_coords_local
-
-        return vol_coords
+        return (
+            self.local_to_world_coords(vol_coords_local)
+            if world_coordinates
+            else vol_coords_local
+        )
 
     def get_local_to_world_coords_transform(self) -> Transform3d:
         """

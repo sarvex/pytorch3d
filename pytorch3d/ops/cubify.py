@@ -45,8 +45,7 @@ def ravel_index(idx, dims) -> torch.Tensor:
     if idx.shape[1] != 3:
         raise ValueError("Expects an index tensor of shape Nx3")
     H, W, D = dims
-    linind = idx[:, 0] * W * D + idx[:, 1] * D + idx[:, 2]
-    return linind
+    return idx[:, 0] * W * D + idx[:, 1] * D + idx[:, 2]
 
 
 @torch.no_grad()

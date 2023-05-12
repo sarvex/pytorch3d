@@ -170,10 +170,9 @@ def gouraud_shading(meshes, fragments, lights, cameras, materials) -> torch.Tens
 
     verts_colors_shaded = verts_colors * (ambient + diffuse) + specular
     face_colors = verts_colors_shaded[faces]
-    colors = interpolate_face_attributes(
+    return interpolate_face_attributes(
         fragments.pix_to_face, fragments.bary_coords, face_colors
     )
-    return colors
 
 
 def flat_shading(meshes, fragments, lights, cameras, materials, texels) -> torch.Tensor:
@@ -219,5 +218,4 @@ def flat_shading(meshes, fragments, lights, cameras, materials, texels) -> torch
     ambient, diffuse, specular = _apply_lighting(
         pixel_coords, pixel_normals, lights, cameras, materials
     )
-    colors = (ambient + diffuse) * texels + specular
-    return colors
+    return (ambient + diffuse) * texels + specular

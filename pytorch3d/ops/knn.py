@@ -22,7 +22,6 @@ class _knn_points(Function):
     """
 
     @staticmethod
-    # pyre-fixme[14]: `forward` overrides method defined in `Function` inconsistently.
     def forward(
         ctx,
         p1,
@@ -66,7 +65,7 @@ class _knn_points(Function):
                 neighbors to `p1[n, i]` in `p2[n]`. This is padded with zeros both where a cloud
                 in p2 has fewer than K points and where a cloud in p1 has fewer than P1 points.
         """
-        if not ((norm == 1) or (norm == 2)):
+        if norm not in {1, 2}:
             raise ValueError("Support for 1 or 2 norm.")
 
         idx, dists = _C.knn_points_idx(p1, p2, lengths1, lengths2, norm, K, version)
@@ -97,11 +96,11 @@ class _knn_points(Function):
         p1, p2, lengths1, lengths2, idx = ctx.saved_tensors
         norm = ctx.norm
         # TODO(gkioxari) Change cast to floats once we add support for doubles.
-        if not (grad_dists.dtype == torch.float32):
+        if grad_dists.dtype != torch.float32:
             grad_dists = grad_dists.float()
-        if not (p1.dtype == torch.float32):
+        if p1.dtype != torch.float32:
             p1 = p1.float()
-        if not (p2.dtype == torch.float32):
+        if p2.dtype != torch.float32:
             p2 = p2.float()
         grad_p1, grad_p2 = _C.knn_points_backward(
             p1, p2, lengths1, lengths2, idx, norm, grad_dists
@@ -188,10 +187,7 @@ def knn_points(
         p1, p2, lengths1, lengths2, K, version, norm, return_sorted
     )
 
-    p2_nn = None
-    if return_nn:
-        p2_nn = knn_gather(p2, p1_idx, lengths2)
-
+    p2_nn = knn_gather(p2, p1_idx, lengths2) if return_nn else None
     return _KNN(dists=p1_dists, idx=p1_idx, knn=p2_nn if return_nn else None)
 
 

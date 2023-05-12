@@ -75,8 +75,7 @@ def eval_depth(
 def estimate_depth_scale_factor(pred, gt, mask, clamp_thr):
     xy = pred * gt * mask
     xx = pred * pred * mask
-    scale_best = xy.mean((1, 2, 3)) / torch.clamp(xx.mean((1, 2, 3)), clamp_thr)
-    return scale_best
+    return xy.mean((1, 2, 3)) / torch.clamp(xx.mean((1, 2, 3)), clamp_thr)
 
 
 def calc_psnr(
@@ -88,8 +87,7 @@ def calc_psnr(
     Calculates the Peak-signal-to-noise ratio between tensors `x` and `y`.
     """
     mse = calc_mse(x, y, mask=mask)
-    psnr = torch.log10(mse.clamp(1e-10)) * (-10.0)
-    return psnr
+    return torch.log10(mse.clamp(1e-10)) * (-10.0)
 
 
 def calc_mse(
@@ -154,8 +152,7 @@ def binary_cross_entropy_lerp(
     pred or 1-pred is smaller than lerp_bound.
     """
     loss = log_lerp(1 - pred, lerp_bound) * (1 - gt) + log_lerp(pred, lerp_bound) * gt
-    loss_reduced = -(loss * weight).sum() / weight.sum().clamp(1e-4)
-    return loss_reduced
+    return -(loss * weight).sum() / weight.sum().clamp(1e-4)
 
 
 def log_lerp(x: torch.Tensor, b: float):
@@ -186,8 +183,7 @@ def huber(dfsq: torch.Tensor, scaling: float = 0.03) -> torch.Tensor:
     The function smoothly transitions from a region with unit gradient
     to a hyperbolic function at `dfsq=scaling`.
     """
-    loss = (safe_sqrt(1 + dfsq / (scaling * scaling), eps=1e-4) - 1) * scaling
-    return loss
+    return (safe_sqrt(1 + dfsq / scaling**2, eps=1e-4) - 1) * scaling
 
 
 def neg_iou_loss(

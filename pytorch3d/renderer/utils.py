@@ -81,9 +81,8 @@ class TensorAccessor(nn.Module):
         """
         if hasattr(self.class_object, name):
             return self.class_object.__dict__[name][self.index]
-        else:
-            msg = "Attribute %s not found on %r"
-            return AttributeError(msg % (name, self.class_object.__name__))
+        msg = "Attribute %s not found on %r"
+        return AttributeError(msg % (name, self.class_object.__name__))
 
 
 BROADCAST_TYPES = (float, int, list, tuple, torch.Tensor, np.ndarray)
@@ -126,10 +125,7 @@ class TensorProperties(nn.Module):
                     warnings.warn(msg % (k, type(v)))
 
             names = args_to_broadcast.keys()
-            # convert from type dict.values to tuple
-            values = tuple(v for v in args_to_broadcast.values())
-
-            if len(values) > 0:
+            if values := tuple(args_to_broadcast.values()):
                 broadcasted_values = convert_to_tensors_and_broadcast(
                     *values, device=device
                 )
@@ -193,10 +189,7 @@ class TensorProperties(nn.Module):
             v = getattr(self, k)
             if inspect.ismethod(v) or k.startswith("__") or type(v) is TypeVar:
                 continue
-            if torch.is_tensor(v):
-                v_clone = v.clone()
-            else:
-                v_clone = copy.deepcopy(v)
+            v_clone = v.clone() if torch.is_tensor(v) else copy.deepcopy(v)
             setattr(other, k, v_clone)
         return other
 
@@ -250,30 +243,31 @@ class TensorProperties(nn.Module):
         # Iterate through the attributes of the class which are tensors.
         for k in dir(self):
             v = getattr(self, k)
-            if torch.is_tensor(v):
-                if v.shape[0] > 1:
-                    # There are different values for each batch element
-                    # so gather these using the batch_idx.
-                    # First clone the input batch_idx tensor before
-                    # modifying it.
-                    _batch_idx = batch_idx.clone()
-                    idx_dims = _batch_idx.shape
-                    tensor_dims = v.shape
-                    if len(idx_dims) > len(tensor_dims):
-                        msg = "batch_idx cannot have more dimensions than %s. "
-                        msg += "got shape %r and %s has shape %r"
-                        raise ValueError(msg % (k, idx_dims, k, tensor_dims))
-                    if idx_dims != tensor_dims:
-                        # To use torch.gather the index tensor (_batch_idx) has
-                        # to have the same shape as the input tensor.
-                        new_dims = len(tensor_dims) - len(idx_dims)
-                        new_shape = idx_dims + (1,) * new_dims
-                        expand_dims = (-1,) + tensor_dims[1:]
-                        _batch_idx = _batch_idx.view(*new_shape)
-                        _batch_idx = _batch_idx.expand(*expand_dims)
+            if torch.is_tensor(v) and v.shape[0] > 1:
+                # There are different values for each batch element
+                # so gather these using the batch_idx.
+                # First clone the input batch_idx tensor before
+                # modifying it.
+                _batch_idx = batch_idx.clone()
+                idx_dims = _batch_idx.shape
+                tensor_dims = v.shape
+                if len(idx_dims) > len(tensor_dims):
+                    msg = (
+                        "batch_idx cannot have more dimensions than %s. "
+                        + "got shape %r and %s has shape %r"
+                    )
+                    raise ValueError(msg % (k, idx_dims, k, tensor_dims))
+                if idx_dims != tensor_dims:
+                    # To use torch.gather the index tensor (_batch_idx) has
+                    # to have the same shape as the input tensor.
+                    new_dims = len(tensor_dims) - len(idx_dims)
+                    new_shape = idx_dims + (1,) * new_dims
+                    expand_dims = (-1,) + tensor_dims[1:]
+                    _batch_idx = _batch_idx.view(*new_shape)
+                    _batch_idx = _batch_idx.expand(*expand_dims)
 
-                    v = v.gather(0, _batch_idx)
-                    setattr(self, k, v)
+                v = v.gather(0, _batch_idx)
+                setattr(self, k, v)
         return self
 
 
@@ -341,7 +335,7 @@ def convert_to_tensors_and_broadcast(
 
     args_Nd = []
     for c in args_1d:
-        if c.shape[0] != 1 and c.shape[0] != N:
+        if c.shape[0] not in [1, N]:
             msg = "Got non-broadcastable sizes %r" % sizes
             raise ValueError(msg)
 
@@ -401,9 +395,7 @@ def ndc_grid_sample(
         input, grid_flat, align_corners=align_corners, **grid_sample_kwargs
     )
 
-    sampled_input = sampled_input_flat.reshape([batch, input.shape[1], *spatial_size])
-
-    return sampled_input
+    return sampled_input_flat.reshape([batch, input.shape[1], *spatial_size])
 
 
 def ndc_to_grid_sample_coords(
@@ -451,8 +443,8 @@ def parse_image_size(
         return (image_size, image_size)
     if len(image_size) != 2:
         raise ValueError("Image size can only be a tuple/list of (H, W)")
-    if not all(i > 0 for i in image_size):
+    if any(i <= 0 for i in image_size):
         raise ValueError("Image sizes must be greater than 0; got %d, %d" % image_size)
-    if not all(type(i) == int for i in image_size):
+    if any(type(i) != int for i in image_size):
         raise ValueError("Image sizes must be integers; got %f, %f" % image_size)
     return tuple(image_size)

@@ -61,11 +61,7 @@ class IO:
         include_default_formats: bool = True,
         path_manager: Optional[PathManager] = None,
     ) -> None:
-        if path_manager is None:
-            self.path_manager = PathManager()
-        else:
-            self.path_manager = path_manager
-
+        self.path_manager = PathManager() if path_manager is None else path_manager
         self.mesh_interpreters: Deque[MeshFormatInterpreter] = deque()
         self.pointcloud_interpreters: Deque[PointcloudFormatInterpreter] = deque()
 
@@ -162,10 +158,9 @@ class IO:
             raise ValueError("Can only save a single mesh.")
 
         for mesh_interpreter in self.mesh_interpreters:
-            success = mesh_interpreter.save(
+            if success := mesh_interpreter.save(
                 data, path, path_manager=self.path_manager, binary=binary, **kwargs
-            )
-            if success:
+            ):
                 return
 
         raise ValueError(f"No mesh interpreter found to write to {path}.")
@@ -214,10 +209,9 @@ class IO:
             raise ValueError("Can only save a single point cloud.")
 
         for pointcloud_interpreter in self.pointcloud_interpreters:
-            success = pointcloud_interpreter.save(
+            if success := pointcloud_interpreter.save(
                 data, path, path_manager=self.path_manager, binary=binary, **kwargs
-            )
-            if success:
+            ):
                 return
 
         raise ValueError(f"No point cloud interpreter found to write to {path}.")

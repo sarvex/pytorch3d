@@ -539,7 +539,7 @@ class JsonIndexDataset(DatasetBase, ReplaceableBase):
             self.frame_annots = [
                 entry for entry in self.frame_annots if entry["subset"] in subsets
             ]
-            if len(self.frame_annots) == 0:
+            if not self.frame_annots:
                 raise ValueError(f"There are no frames in the '{subsets}' subsets!")
 
             self._invalidate_indexes(filter_seq_annots=True)

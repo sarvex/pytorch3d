@@ -59,9 +59,7 @@ class MeshRenderer(nn.Module):
         For this set rasterizer.raster_settings.clip_barycentric_coords=True
         """
         fragments = self.rasterizer(meshes_world, **kwargs)
-        images = self.shader(fragments, meshes_world, **kwargs)
-
-        return images
+        return self.shader(fragments, meshes_world, **kwargs)
 
 
 class MeshRendererWithFragments(nn.Module):

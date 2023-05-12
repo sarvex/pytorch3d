@@ -311,8 +311,8 @@ def pack_unique_rectangles(rectangles: List[Rectangle]) -> PackedRectangles:
         return PackedRectangles(unique_input_sizes[0], first + rest)
 
     total_size, unique_locations = pack_rectangles(unique_input_sizes)
-    full_locations = []
-    for input_index, first in input_indices:
-        full_locations.append(unique_locations[input_index]._replace(is_first=first))
-
+    full_locations = [
+        unique_locations[input_index]._replace(is_first=first)
+        for input_index, first in input_indices
+    ]
     return PackedRectangles(total_size, full_locations)

@@ -28,18 +28,18 @@ class _MeshFaceAreasNormals(Function):
             areas: FloatTensor of shape (F,) with the areas of each face
             normals: FloatTensor of shape (F,3) with the normals of each face
         """
-        if not (verts.dim() == 2):
+        if verts.dim() != 2:
             raise ValueError("verts need to be of shape Vx3.")
-        if not (verts.shape[1] == 3):
+        if verts.shape[1] != 3:
             raise ValueError("verts need to be of shape Vx3.")
-        if not (faces.dim() == 2):
+        if faces.dim() != 2:
             raise ValueError("faces need to be of shape Fx3.")
-        if not (faces.shape[1] == 3):
+        if faces.shape[1] != 3:
             raise ValueError("faces need to be of shape Fx3.")
-        if not (faces.dtype == torch.int64):
+        if faces.dtype != torch.int64:
             raise ValueError("faces need to be of type torch.int64.")
         # TODO(gkioxari) Change cast to floats once we add support for doubles.
-        if not (verts.dtype == torch.float32):
+        if verts.dtype != torch.float32:
             verts = verts.float()
 
         ctx.save_for_backward(verts, faces)
@@ -53,9 +53,9 @@ class _MeshFaceAreasNormals(Function):
         grad_normals = grad_normals.contiguous()
         verts, faces = ctx.saved_tensors
         # TODO(gkioxari) Change cast to floats once we add support for doubles.
-        if not (grad_areas.dtype == torch.float32):
+        if grad_areas.dtype != torch.float32:
             grad_areas = grad_areas.float()
-        if not (grad_normals.dtype == torch.float32):
+        if grad_normals.dtype != torch.float32:
             grad_normals = grad_normals.float()
         grad_verts = _C.face_areas_normals_backward(
             grad_areas, grad_normals, verts, faces

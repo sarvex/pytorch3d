@@ -145,11 +145,9 @@ class _SymEig3x3(nn.Module):
             eigenvals[..., 1] - eigenvals[..., 0]
             > eigenvals[..., 2] - eigenvals[..., 1]
         ).detach()
-        eigenvecs = torch.where(
+        return torch.where(
             eigenvecs_cond[..., None, None], eigenvecs_for_01, eigenvecs_for_21
         )
-
-        return eigenvecs
 
     def _construct_eigenvecs(
         self, inputs: torch.Tensor, alpha0: torch.Tensor, alpha1: torch.Tensor

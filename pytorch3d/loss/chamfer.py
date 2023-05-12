@@ -115,7 +115,7 @@ def chamfer_distance(
     """
     _validate_chamfer_reduction_inputs(batch_reduction, point_reduction)
 
-    if not ((norm == 1) or (norm == 2)):
+    if norm not in {1, 2}:
         raise ValueError("Support for 1 or 2 norm.")
 
     x, x_lengths, x_normals = _handle_pointcloud_input(x, x_lengths, x_normals)

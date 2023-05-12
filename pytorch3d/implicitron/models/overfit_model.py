@@ -407,11 +407,9 @@ class OverfitModel(ImplicitronModelBase):  # pyre-ignore: 13
             mask_crop=mask_crop,
         )
 
-        preds.update(
-            self.regularization_metrics(
-                results=preds,
-                model=self,
-            )
+        preds |= self.regularization_metrics(
+            results=preds,
+            model=self,
         )
 
         if sampling_mode == RenderSamplingMode.MASK_SAMPLE:
@@ -547,7 +545,7 @@ class OverfitModel(ImplicitronModelBase):  # pyre-ignore: 13
             "image_height": self.render_image_height,
         }
         raysampler_args = getattr(
-            self, "raysampler_" + self.raysampler_class_type + "_args"
+            self, f"raysampler_{self.raysampler_class_type}_args"
         )
         self.raysampler = registry.get(RaySamplerBase, self.raysampler_class_type)(
             **raysampler_args, **extra_args
@@ -576,7 +574,7 @@ class OverfitModel(ImplicitronModelBase):  # pyre-ignore: 13
                 )
             extra_args["object_bounding_sphere"] = self.raysampler.scene_extent
 
-        renderer_args = getattr(self, "renderer_" + self.renderer_class_type + "_args")
+        renderer_args = getattr(self, f"renderer_{self.renderer_class_type}_args")
         self.renderer = registry.get(BaseRenderer, self.renderer_class_type)(
             **renderer_args, **extra_args
         )
@@ -656,9 +654,5 @@ class OverfitModel(ImplicitronModelBase):  # pyre-ignore: 13
             self.coarse_implicit_function = implicit_function_type(
                 **config, **extra_args
             )
-        elif self.share_implicit_function_across_passes:
-            # Since coarse_implicit_function is initialised before
-            # implicit_function we handle this case in the post_init.
-            pass
-        else:
+        elif not self.share_implicit_function_across_passes:
             self.coarse_implicit_function = None

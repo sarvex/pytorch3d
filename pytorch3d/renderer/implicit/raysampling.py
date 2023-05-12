@@ -709,9 +709,7 @@ def _jiggle_within_stratas(bin_centers: torch.Tensor) -> torch.Tensor:
     mids = 0.5 * (bin_centers[..., 1:] + bin_centers[..., :-1])
     upper = torch.cat((mids, bin_centers[..., -1:]), dim=-1)
     lower = torch.cat((bin_centers[..., :1], mids), dim=-1)
-    # Samples in those intervals.
-    jiggled = lower + (upper - lower) * torch.rand_like(lower)
-    return jiggled
+    return lower + (upper - lower) * torch.rand_like(lower)
 
 
 def _sample_cameras_and_masks(

@@ -230,18 +230,17 @@ class Stats(object):
                     time_per_it = now - (self._t_last_update or time_start)
                     self._t_last_update = now
                 val = time_per_it
-            else:
-                if stat in preds:
-                    try:
-                        val = self.gather_value(preds[stat])
-                    except KeyError:
-                        raise ValueError(
-                            "could not extract prediction %s\
+            elif stat in preds:
+                try:
+                    val = self.gather_value(preds[stat])
+                except KeyError:
+                    raise ValueError(
+                        "could not extract prediction %s\
                                           from the prediction dictionary"
-                            % stat
-                        ) from None
-                else:
-                    val = None
+                        % stat
+                    ) from None
+            else:
+                val = None
 
             if val is not None:
                 self.stats[stat_set][stat].update(val, epoch=epoch, n=1)
@@ -306,7 +305,7 @@ class Stats(object):
         if max_it:
             head_str += "/ %d" % max_it
 
-        str_out = "%s | %s" % (head_str, stat_str)
+        str_out = f"{head_str} | {stat_str}"
 
         if get_str:
             return str_out
@@ -354,19 +353,18 @@ class Stats(object):
                 val = self.stats[stat_set][stat].get_epoch_averages()
                 if val is None:
                     continue
-                else:
-                    val = np.array(val).reshape(-1)
-                    stat_sets_now.append(stat_set)
+                val = np.array(val).reshape(-1)
+                stat_sets_now.append(stat_set)
                 vals.append(val)
 
-            if len(vals) == 0:
+            if not vals:
                 continue
 
             lines.append((stat_sets_now, stat, vals))
 
         if not novisdom:
             for tmodes, stat, vals in lines:
-                title = "%s" % stat
+                title = f"{stat}"
                 opts = {"title": title, "legend": list(tmodes)}
                 for i, (tmode, val) in enumerate(zip(tmodes, vals)):
                     update = "append" if i > 0 else None
@@ -385,7 +383,7 @@ class Stats(object):
                     )
 
         if plot_file:
-            print("exporting stats to %s" % plot_file)
+            print(f"exporting stats to {plot_file}")
             ncol = 3
             nrow = int(np.ceil(float(len(lines)) / ncol))
             matplotlib.rcParams.update({"font.size": 5})
@@ -405,7 +403,7 @@ class Stats(object):
                     plt.plot(x[valid], vals_[valid], c=c_, linewidth=1)
                 plt.ylabel(stat)
                 plt.xlabel("epoch")
-                plt.gca().yaxis.label.set_color(c[0:3] * 0.75)
+                plt.gca().yaxis.label.set_color(c[:3] * 0.75)
                 plt.legend(tmodes)
                 gcolor = np.array(mcolors.to_rgba("lightgray"))
                 plt.grid(
@@ -431,7 +429,7 @@ class Stats(object):
         for stat_set in stat_sets:
             for stat in self.stats[stat_set].keys():
                 if stat not in log_vars:
-                    print("additional stat %s:%s -> removing" % (stat_set, stat))
+                    print(f"additional stat {stat_set}:{stat} -> removing")
 
             self.stats[stat_set] = {
                 stat: v for stat, v in self.stats[stat_set].items() if stat in log_vars
@@ -449,14 +447,13 @@ class Stats(object):
                         )
                 elif len(self.stats[stat_set][stat].history) != self.epoch + 1:
                     h = self.stats[stat_set][stat].history
-                    if len(h) == 0:  # just never updated stat ... skip
+                    if len(h) == 0:
                         continue
-                    else:
-                        if verbose:
-                            print(
-                                "incomplete stat %s:%s -> reseting with default values (%1.2f)"
-                                % (stat_set, stat, default_val)
-                            )
+                    if verbose:
+                        print(
+                            "incomplete stat %s:%s -> reseting with default values (%1.2f)"
+                            % (stat_set, stat, default_val)
+                        )
                 else:
                     continue
 
@@ -478,8 +475,7 @@ class Stats(object):
 class StatsJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (AverageMeter, Stats)):
-            enc = self.encode(o.__dict__)
-            return enc
+            return self.encode(o.__dict__)
         else:
             raise TypeError(
                 f"Object of type {o.__class__.__name__} " f"is not JSON serializable"

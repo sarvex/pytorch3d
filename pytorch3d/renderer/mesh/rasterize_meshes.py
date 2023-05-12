@@ -195,18 +195,16 @@ def rasterize_meshes(
         if not verts_packed.is_cuda:
             # Binned CPU rasterization is not supported.
             bin_size = 0
+        elif max_image_size <= 64:
+            bin_size = 8
         else:
-            # TODO better heuristics for bin size.
-            if max_image_size <= 64:
-                bin_size = 8
-            else:
-                # Heuristic based formula maps max_image_size -> bin_size as follows:
-                # max_image_size < 64 -> 8
-                # 16 < max_image_size < 256 -> 16
-                # 256 < max_image_size < 512 -> 32
-                # 512 < max_image_size < 1024 -> 64
-                # 1024 < max_image_size < 2048 -> 128
-                bin_size = int(2 ** max(np.ceil(np.log2(max_image_size)) - 4, 4))
+            # Heuristic based formula maps max_image_size -> bin_size as follows:
+            # max_image_size < 64 -> 8
+            # 16 < max_image_size < 256 -> 16
+            # 256 < max_image_size < 512 -> 32
+            # 512 < max_image_size < 1024 -> 64
+            # 1024 < max_image_size < 2048 -> 128
+            bin_size = int(2 ** max(np.ceil(np.log2(max_image_size)) - 4, 4))
 
     if bin_size != 0:
         # There is a limit on the number of faces per bin in the cuda kernel.
@@ -339,7 +337,7 @@ class _RasterizeFaceVerts(torch.autograd.Function):
             ctx.perspective_correct,
             ctx.clip_barycentric_coords,
         )
-        grads = (
+        return (
             grad_face_verts,
             grad_mesh_to_face_first_idx,
             grad_num_faces_per_mesh,
@@ -353,7 +351,6 @@ class _RasterizeFaceVerts(torch.autograd.Function):
             grad_clip_barycentric_coords,
             grad_cull_backfaces,
         )
-        return grads
 
 
 def non_square_ndc_range(S1, S2):
@@ -371,7 +368,7 @@ def non_square_ndc_range(S1, S2):
     """
     ndc_range = 2.0
     if S1 > S2:
-        ndc_range = (S1 / S2) * ndc_range
+        ndc_range *= S1 / S2
     return ndc_range
 
 
@@ -578,7 +575,7 @@ def rasterize_meshes_python(  # noqa: C901
                             for i, val in enumerate(top_k_points)
                             if val[1] == neighbor_idx
                         ]
-                        top_k_idx = top_k_idx[0] if len(top_k_idx) > 0 else -1
+                        top_k_idx = top_k_idx[0] if top_k_idx else -1
 
                     if top_k_idx != -1 and dist < top_k_points[top_k_idx][3]:
                         # Overwrite the neighbor with current face info
@@ -758,6 +755,4 @@ def point_triangle_distance(p, v0, v1, v2):
     e01_dist = point_line_distance(p, v0, v1)
     e02_dist = point_line_distance(p, v0, v2)
     e12_dist = point_line_distance(p, v1, v2)
-    edge_dists_min = torch.min(torch.min(e01_dist, e02_dist), e12_dist)
-
-    return edge_dists_min
+    return torch.min(torch.min(e01_dist, e02_dist), e12_dist)

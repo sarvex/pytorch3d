@@ -270,28 +270,26 @@ class Pointclouds:
 
         if isinstance(aux_input, list):
             return self._parse_auxiliary_input_list(aux_input)
-        if torch.is_tensor(aux_input):
-            if aux_input.dim() != 3:
-                raise ValueError("Auxiliary input tensor has incorrect dimensions.")
-            if self._N != aux_input.shape[0]:
-                raise ValueError("Points and inputs must be the same length.")
-            if self._P != aux_input.shape[1]:
-                raise ValueError(
-                    "Inputs tensor must have the right maximum \
-                    number of points in each cloud."
-                )
-            if aux_input.device != self.device:
-                raise ValueError(
-                    "All auxiliary inputs must be on the same device as the points."
-                )
-            aux_input_C = aux_input.shape[2]
-            return None, aux_input, aux_input_C
-        else:
+        if not torch.is_tensor(aux_input):
             raise ValueError(
                 "Auxiliary input must be either a list or a tensor with \
                     shape (batch_size, P, C) where P is the maximum number of \
                     points in a cloud."
             )
+        if aux_input.dim() != 3:
+            raise ValueError("Auxiliary input tensor has incorrect dimensions.")
+        if self._N != aux_input.shape[0]:
+            raise ValueError("Points and inputs must be the same length.")
+        if self._P != aux_input.shape[1]:
+            raise ValueError(
+                "Inputs tensor must have the right maximum \
+                    number of points in each cloud."
+            )
+        if aux_input.device != self.device:
+            raise ValueError(
+                "All auxiliary inputs must be on the same device as the points."
+            )
+        return None, aux_input, aux_input.shape[2]
 
     def _parse_auxiliary_input_list(
         self, aux_input: list
@@ -434,11 +432,10 @@ class Pointclouds:
             assert (
                 self._points_padded is not None
             ), "points_padded is required to compute points_list."
-            points_list = []
-            for i in range(self._N):
-                points_list.append(
-                    self._points_padded[i, : self.num_points_per_cloud()[i]]
-                )
+            points_list = [
+                self._points_padded[i, : self.num_points_per_cloud()[i]]
+                for i in range(self._N)
+            ]
             self._points_list = points_list
         return self._points_list
 
@@ -971,10 +968,10 @@ class Pointclouds:
         """
         if not torch.is_tensor(scale):
             scale = torch.full((len(self),), scale, device=self.device)
-        new_points_list = []
         points_list = self.points_list()
-        for i, old_points in enumerate(points_list):
-            new_points_list.append(scale[i] * old_points)
+        new_points_list = [
+            scale[i] * old_points for i, old_points in enumerate(points_list)
+        ]
         self._points_list = new_points_list
         if self._points_packed is not None:
             self._points_packed = torch.cat(new_points_list, dim=0)
@@ -1014,8 +1011,7 @@ class Pointclouds:
             all_maxes.append(cur_maxes)
         all_mins = torch.stack(all_mins, dim=0)  # (N, 3)
         all_maxes = torch.stack(all_maxes, dim=0)  # (N, 3)
-        bboxes = torch.stack([all_mins, all_maxes], dim=2)
-        return bboxes
+        return torch.stack([all_mins, all_maxes], dim=2)
 
     def estimate_normals(
         self,
@@ -1123,11 +1119,10 @@ class Pointclouds:
                 raise ValueError("new values must have the same batch dimension.")
             if x.shape[1] != size[1]:
                 raise ValueError("new values must have the same number of points.")
-            if size[2] is not None:
-                if x.shape[2] != size[2]:
-                    raise ValueError(
-                        "new values must have the same number of channels."
-                    )
+            if size[2] is not None and x.shape[2] != size[2]:
+                raise ValueError(
+                    "new values must have the same number of channels."
+                )
 
         check_shapes(new_points_padded, [self._N, self._P, 3])
         if new_normals_padded is not None:
@@ -1245,16 +1240,16 @@ def join_pointclouds_as_batch(pointclouds: Sequence[Pointclouds]) -> Pointclouds
         raise ValueError("Wrong first argument to join_points_as_batch.")
 
     device = pointclouds[0].device
-    if not all(p.device == device for p in pointclouds):
+    if any(p.device != device for p in pointclouds):
         raise ValueError("Pointclouds must all be on the same device")
 
     kwargs = {}
     for field in ("points", "normals", "features"):
-        field_list = [getattr(p, field + "_list")() for p in pointclouds]
+        field_list = [getattr(p, f"{field}_list")() for p in pointclouds]
         if None in field_list:
             if field == "points":
                 raise ValueError("Pointclouds cannot have their points set to None!")
-            if not all(f is None for f in field_list):
+            if any(f is not None for f in field_list):
                 raise ValueError(
                     f"Pointclouds in the batch have some fields '{field}'"
                     + " defined and some set to None."
@@ -1295,9 +1290,8 @@ def join_pointclouds_as_scene(
     points = pointclouds.points_packed()
     features = pointclouds.features_packed()
     normals = pointclouds.normals_packed()
-    pointcloud = Pointclouds(
+    return Pointclouds(
         points=points[None],
         features=None if features is None else features[None],
         normals=None if normals is None else normals[None],
     )
-    return pointcloud

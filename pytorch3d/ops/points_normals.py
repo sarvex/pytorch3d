@@ -56,10 +56,7 @@ def estimate_pointcloud_normals(
         use_symeig_workaround=use_symeig_workaround,
     )
 
-    # the normals correspond to the first vector of each local coord frame
-    normals = local_coord_frames[:, :, :, 0]
-
-    return normals
+    return local_coord_frames[:, :, :, 0]
 
 
 def estimate_pointcloud_local_coord_frames(

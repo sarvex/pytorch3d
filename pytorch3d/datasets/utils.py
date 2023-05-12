@@ -10,7 +10,7 @@ from pytorch3d.renderer.mesh import TexturesAtlas
 from pytorch3d.structures import Meshes
 
 
-def collate_batched_meshes(batch: List[Dict]):  # pragma: no cover
+def collate_batched_meshes(batch: List[Dict]):    # pragma: no cover
     """
     Take a list of objects in the form of dictionaries and merge them
     into a single dictionary. This function can be used with a Dataset
@@ -26,12 +26,9 @@ def collate_batched_meshes(batch: List[Dict]):  # pragma: no cover
         collated_dict: Dictionary of collated lists. If batch contains both
             verts and faces, a collated mesh batch is also returned.
     """
-    if batch is None or len(batch) == 0:
+    if batch is None or not batch:
         return None
-    collated_dict = {}
-    for k in batch[0].keys():
-        collated_dict[k] = [d[k] for d in batch]
-
+    collated_dict = {k: [d[k] for d in batch] for k in batch[0].keys()}
     collated_dict["mesh"] = None
     if {"verts", "faces"}.issubset(collated_dict.keys()):
 

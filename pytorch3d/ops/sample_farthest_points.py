@@ -72,11 +72,11 @@ def sample_farthest_points(
         raise ValueError("K and points must have the same batch dimension")
 
     # Check dtypes are correct and convert if necessary
-    if not (points.dtype == torch.float32):
+    if points.dtype != torch.float32:
         points = points.to(torch.float32)
-    if not (lengths.dtype == torch.int64):
+    if lengths.dtype != torch.int64:
         lengths = lengths.to(torch.int64)
-    if not (K.dtype == torch.int64):
+    if K.dtype != torch.int64:
         K = K.to(torch.int64)
 
     # Generate the starting indices for sampling

@@ -249,8 +249,7 @@ def _setup_envvars_for_cluster() -> bool:
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "42918"
     logger.info(
-        "Num tasks %s, global_rank %s"
-        % (str(job_env.num_tasks), str(job_env.global_rank))
+        f"Num tasks {str(job_env.num_tasks)}, global_rank {str(job_env.global_rank)}"
     )
 
     return True

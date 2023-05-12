@@ -19,8 +19,7 @@ def calc_psnr(x: torch.Tensor, y: torch.Tensor):
     Calculates the Peak-signal-to-noise ratio between tensors `x` and `y`.
     """
     mse = calc_mse(x, y)
-    psnr = -10.0 * torch.log10(mse)
-    return psnr
+    return -10.0 * torch.log10(mse)
 
 
 def sample_images_at_mc_locs(

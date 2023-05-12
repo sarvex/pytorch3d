@@ -10,4 +10,4 @@ from .pluggable import IO
 from .ply_io import load_ply, save_ply
 
 
-__all__ = [k for k in globals().keys() if not k.startswith("_")]
+__all__ = [k for k in globals() if not k.startswith("_")]

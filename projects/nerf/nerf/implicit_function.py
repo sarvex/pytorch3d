@@ -115,8 +115,7 @@ class NeuralRadianceField(torch.nn.Module):
             raw_densities = (
                 raw_densities + torch.randn_like(raw_densities) * density_noise_std
             )
-        densities = 1 - (-deltas * torch.relu(raw_densities)).exp()
-        return densities
+        return 1 - (-deltas * torch.relu(raw_densities)).exp()
 
     def _get_colors(
         self, features: torch.Tensor, rays_directions: torch.Tensor
@@ -271,13 +270,11 @@ class MLPWithInputSkips(torch.nn.Module):
         for layeri in range(n_layers):
             if layeri == 0:
                 dimin = input_dim
-                dimout = hidden_dim
             elif layeri in input_skips:
                 dimin = hidden_dim + skip_dim
-                dimout = hidden_dim
             else:
                 dimin = hidden_dim
-                dimout = hidden_dim
+            dimout = hidden_dim
             linear = torch.nn.Linear(dimin, dimout)
             _xavier_init(linear)
             layers.append(torch.nn.Sequential(linear, torch.nn.ReLU(True)))

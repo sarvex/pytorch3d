@@ -213,11 +213,7 @@ def load_obj(
               will have a uniform white texture.  Otherwise `texture_atlas` will be
               None.
     """
-    data_dir = "./"
-    if isinstance(f, (str, bytes, Path)):
-        # pyre-fixme[6]: For 1st argument expected `PathLike[Variable[AnyStr <:
-        #  [str, bytes]]]` but got `Union[Path, bytes, str]`.
-        data_dir = os.path.dirname(f)
+    data_dir = os.path.dirname(f) if isinstance(f, (str, bytes, Path)) else "./"
     if path_manager is None:
         path_manager = PathManager()
     with _open_file(f, path_manager, "r") as f:
@@ -289,9 +285,7 @@ def load_objs_as_meshes(
             verts=[verts.to(device)], faces=[faces.verts_idx.to(device)], textures=tex
         )
         mesh_list.append(mesh)
-    if len(mesh_list) == 1:
-        return mesh_list[0]
-    return join_meshes_as_batch(mesh_list)
+    return mesh_list[0] if len(mesh_list) == 1 else join_meshes_as_batch(mesh_list)
 
 
 class MeshObjFormat(MeshFormatInterpreter):
@@ -311,7 +305,7 @@ class MeshObjFormat(MeshFormatInterpreter):
     ) -> Optional[Meshes]:
         if not endswith(path, self.known_suffixes):
             return None
-        mesh = load_objs_as_meshes(
+        return load_objs_as_meshes(
             files=[path],
             device=device,
             load_textures=include_textures,
@@ -320,7 +314,6 @@ class MeshObjFormat(MeshFormatInterpreter):
             texture_wrap=texture_wrap,
             path_manager=path_manager,
         )
-        return mesh
 
     def save(
         self,
@@ -398,8 +391,8 @@ def _parse_face(
     # fill with pad value = -1. This will ensure that
     # all the face index tensors will have F values where
     # F is the number of faces.
-    if len(face_normals) > 0:
-        if not (len(face_verts) == len(face_normals)):
+    if face_normals:
+        if len(face_verts) != len(face_normals):
             raise ValueError(
                 "Face %s is an illegal statement. \
                         Vertex properties are inconsistent. Line: %s"
@@ -407,8 +400,8 @@ def _parse_face(
             )
     else:
         face_normals = [-1] * len(face_verts)  # Fill with -1
-    if len(face_textures) > 0:
-        if not (len(face_verts) == len(face_textures)):
+    if face_textures:
+        if len(face_verts) != len(face_textures):
             raise ValueError(
                 "Face %s is an illegal statement. \
                         Vertex properties are inconsistent. Line: %s"
@@ -478,9 +471,7 @@ def _parse_obj(f, data_dir: str):
         elif line.startswith("vt "):  # Line is a texture.
             tx = [float(x) for x in tokens[1:3]]
             if len(tx) != 2:
-                raise ValueError(
-                    "Texture %s does not have 2 values. Line: %s" % (str(tx), str(line))
-                )
+                raise ValueError(f"Texture {tx} does not have 2 values. Line: {str(line)}")
             verts_uvs.append(tx)
         elif line.startswith("vn "):  # Line is a normal.
             norm = [float(x) for x in tokens[1:4]]
@@ -728,7 +719,7 @@ def save_obj(
     if path_manager is None:
         path_manager = PathManager()
 
-    save_texture = all([t is not None for t in [faces_uvs, verts_uvs, texture_map]])
+    save_texture = all(t is not None for t in [faces_uvs, verts_uvs, texture_map])
     output_path = Path(f)
 
     # Save the .obj file
@@ -799,11 +790,7 @@ def _save(
     lines = ""
 
     if len(verts):
-        if decimal_places is None:
-            float_str = "%f"
-        else:
-            float_str = "%" + ".%df" % decimal_places
-
+        float_str = "%f" if decimal_places is None else "%" + ".%df" % decimal_places
         V, D = verts.shape
         for i in range(V):
             vert = [float_str % verts[i, j] for j in range(D)]
@@ -847,6 +834,6 @@ def _save(
 
             elif i + 1 == F:
                 # No newline at the end of the file.
-                lines += "f %s" % " ".join(face)
+                lines += f'f {" ".join(face)}'
 
     f.write(lines)

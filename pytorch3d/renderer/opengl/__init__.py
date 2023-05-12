@@ -12,7 +12,7 @@ def _can_import_egl_and_pycuda():
     try:
         os.environ["PYOPENGL_PLATFORM"] = "egl"
         import OpenGL.EGL
-    except (AttributeError, ImportError, ModuleNotFoundError):
+    except (AttributeError, ImportError):
         warnings.warn(
             "Can't import EGL, not importing MeshRasterizerOpenGL. This might happen if"
             " your Python application imported OpenGL with a non-EGL backend before"
@@ -23,7 +23,7 @@ def _can_import_egl_and_pycuda():
 
     try:
         import pycuda.gl
-    except (ImportError, ImportError, ModuleNotFoundError):
+    except (ImportError, ImportError):
         warnings.warn("Can't import pycuda.gl, not importing MeshRasterizerOpenGL.")
         return False
 
@@ -34,4 +34,4 @@ if _can_import_egl_and_pycuda():
     from .opengl_utils import EGLContext, global_device_context_store
     from .rasterizer_opengl import MeshRasterizerOpenGL
 
-__all__ = [k for k in globals().keys() if not k.startswith("_")]
+__all__ = [k for k in globals() if not k.startswith("_")]

@@ -325,11 +325,13 @@ class GenericModel(ImplicitronModelBase):  # pyre-ignore: 13
             pass
 
     def __post_init__(self):
-        if self.view_pooler_enabled:
-            if self.image_feature_extractor_class_type is None:
-                raise ValueError(
-                    "image_feature_extractor must be present for view pooling."
-                )
+        if (
+            self.view_pooler_enabled
+            and self.image_feature_extractor_class_type is None
+        ):
+            raise ValueError(
+                "image_feature_extractor must be present for view pooling."
+            )
         run_auto_creation(self)
 
         self._implicit_functions = self._construct_implicit_functions()
@@ -658,7 +660,7 @@ class GenericModel(ImplicitronModelBase):  # pyre-ignore: 13
             "image_height": self.render_image_height,
         }
         raysampler_args = getattr(
-            self, "raysampler_" + self.raysampler_class_type + "_args"
+            self, f"raysampler_{self.raysampler_class_type}_args"
         )
         self.raysampler = registry.get(RaySamplerBase, self.raysampler_class_type)(
             **raysampler_args, **extra_args
@@ -687,7 +689,7 @@ class GenericModel(ImplicitronModelBase):  # pyre-ignore: 13
                 )
             extra_args["object_bounding_sphere"] = self.raysampler.scene_extent
 
-        renderer_args = getattr(self, "renderer_" + self.renderer_class_type + "_args")
+        renderer_args = getattr(self, f"renderer_{self.renderer_class_type}_args")
         self.renderer = registry.get(BaseRenderer, self.renderer_class_type)(
             **renderer_args, **extra_args
         )
@@ -721,12 +723,12 @@ class GenericModel(ImplicitronModelBase):  # pyre-ignore: 13
         implicit function method. Then the required implicit
         function(s) are initialized.
         """
-        extra_args = {}
         global_encoder_dim = (
             0 if self.global_encoder is None else self.global_encoder.get_encoding_dim()
         )
         viewpooled_feature_dim = self._get_viewpooled_feature_dim()
 
+        extra_args = {}
         if self.implicit_function_class_type in (
             "NeuralRadianceFieldImplicitFunction",
             "NeRFormerImplicitFunction",
@@ -753,15 +755,17 @@ class GenericModel(ImplicitronModelBase):  # pyre-ignore: 13
         expand_args_fields(implicit_function_type)
         if self.num_passes != 1 and not implicit_function_type.allows_multiple_passes():
             raise ValueError(
-                self.implicit_function_class_type
-                + f"requires num_passes=1 not {self.num_passes}"
+                f"{self.implicit_function_class_type}requires num_passes=1 not {self.num_passes}"
             )
 
-        if implicit_function_type.requires_pooling_without_aggregation():
-            if self.view_pooler_enabled and self.view_pooler.has_aggregation():
-                raise ValueError(
-                    "The chosen implicit function requires view pooling without aggregation."
-                )
+        if (
+            implicit_function_type.requires_pooling_without_aggregation()
+            and self.view_pooler_enabled
+            and self.view_pooler.has_aggregation()
+        ):
+            raise ValueError(
+                "The chosen implicit function requires view pooling without aggregation."
+            )
         config_name = f"implicit_function_{self.implicit_function_class_type}_args"
         config = getattr(self, config_name, None)
         if config is None:

@@ -100,15 +100,13 @@ def _pulsar_from_opencv_projection(
 ) -> torch.Tensor:
     assert len(camera_matrix.size()) == 3, "This function requires batched inputs!"
     assert len(R.size()) == 3, "This function requires batched inputs!"
-    assert len(tvec.size()) in (2, 3), "This function reuqires batched inputs!"
+    assert len(tvec.size()) in {2, 3}, "This function reuqires batched inputs!"
 
     # Validate parameters.
     image_size_wh = image_size.to(R).flip(dims=(1,))
     assert torch.all(
         image_size_wh > 0
-    ), "height and width must be positive but min is: %s" % (
-        str(image_size_wh.min().item())
-    )
+    ), f"height and width must be positive but min is: {str(image_size_wh.min().item())}"
     assert (
         camera_matrix.size(1) == 3 and camera_matrix.size(2) == 3
     ), "Incorrect camera matrix shape: expected 3x3 but got %dx%d" % (
@@ -180,8 +178,7 @@ def _pulsar_from_opencv_projection(
     R_trans = R.permute(0, 2, 1)
     cam_pos = -torch.bmm(R_trans, tvec).squeeze(2)
     cam_rot = matrix_to_rotation_6d(R_trans)
-    cam_params = torch.cat([cam_pos, cam_rot, param], dim=1)
-    return cam_params
+    return torch.cat([cam_pos, cam_rot, param], dim=1)
 
 
 def _pulsar_from_cameras_projection(

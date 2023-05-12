@@ -99,12 +99,10 @@ def so3_rotation_angle(
 
     if cos_angle:
         return phi_cos
-    else:
-        if cos_bound > 0.0:
-            bound = 1.0 - cos_bound
-            return acos_linear_extrapolation(phi_cos, (-bound, bound))
-        else:
-            return torch.acos(phi_cos)
+    if cos_bound <= 0.0:
+        return torch.acos(phi_cos)
+    bound = 1.0 - cos_bound
+    return acos_linear_extrapolation(phi_cos, (-bound, bound))
 
 
 def so3_exp_map(log_rot: torch.Tensor, eps: float = 0.0001) -> torch.Tensor:
@@ -223,9 +221,7 @@ def so3_log_map(
 
     log_rot_hat = phi_factor[:, None, None] * (R - R.permute(0, 2, 1))
 
-    log_rot = hat_inv(log_rot_hat)
-
-    return log_rot
+    return hat_inv(log_rot_hat)
 
 
 def hat_inv(h: torch.Tensor) -> torch.Tensor:
@@ -259,9 +255,7 @@ def hat_inv(h: torch.Tensor) -> torch.Tensor:
     y = h[:, 0, 2]
     z = h[:, 1, 0]
 
-    v = torch.stack((x, y, z), dim=1)
-
-    return v
+    return torch.stack((x, y, z), dim=1)
 
 
 def hat(v: torch.Tensor) -> torch.Tensor:
